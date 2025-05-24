@@ -9,6 +9,12 @@
 /* Begin PBXBuildFile section */
 		509C888B2DE28745004AEA54 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 509C888A2DE28745004AEA54 /* FirebaseAuth */; };
 		509C888D2DE28745004AEA54 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 509C888C2DE28745004AEA54 /* FirebaseFirestore */; };
+		509C88992DE2897B004AEA54 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 509C88952DE2897B004AEA54 /* ContentView.swift */; };
+		509C889A2DE2897B004AEA54 /* SwiftCalendarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 509C88972DE2897B004AEA54 /* SwiftCalendarApp.swift */; };
+		509C889B2DE2897B004AEA54 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 509C88942DE2897B004AEA54 /* Assets.xcassets */; };
+		509C889C2DE2897B004AEA54 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 509C88962DE2897B004AEA54 /* GoogleService-Info.plist */; };
+		509C88A22DE28A7C004AEA54 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = 509C88A12DE28A7C004AEA54 /* User.swift */; };
+		509C88A42DE28AB5004AEA54 /* Event.swift in Sources */ = {isa = PBXBuildFile; fileRef = 509C88A32DE28AB5004AEA54 /* Event.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -29,17 +35,18 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		509C885F2DE286D2004AEA54 /* SwiftCalendar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SwiftCalendar.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		509C886C2DE286D3004AEA54 /* SwiftCalendarTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwiftCalendarTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		509C88762DE286D3004AEA54 /* SwiftCalendarUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwiftCalendarUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		509C88912DE2897B004AEA54 /* SwiftCalendar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SwiftCalendar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		509C88922DE2897B004AEA54 /* SwiftCalendarTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwiftCalendarTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		509C88932DE2897B004AEA54 /* SwiftCalendarUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwiftCalendarUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		509C88942DE2897B004AEA54 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		509C88952DE2897B004AEA54 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		509C88962DE2897B004AEA54 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		509C88972DE2897B004AEA54 /* SwiftCalendarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftCalendarApp.swift; sourceTree = "<group>"; };
+		509C88A12DE28A7C004AEA54 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
+		509C88A32DE28AB5004AEA54 /* Event.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Event.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		509C88612DE286D2004AEA54 /* SwiftCalendar */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = SwiftCalendar;
-			sourceTree = "<group>";
-		};
 		509C886F2DE286D3004AEA54 /* SwiftCalendarTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = SwiftCalendarTests;
@@ -82,21 +89,58 @@
 		509C88562DE286D2004AEA54 = {
 			isa = PBXGroup;
 			children = (
-				509C88612DE286D2004AEA54 /* SwiftCalendar */,
 				509C886F2DE286D3004AEA54 /* SwiftCalendarTests */,
 				509C88792DE286D3004AEA54 /* SwiftCalendarUITests */,
-				509C88602DE286D2004AEA54 /* Products */,
+				509C88982DE2897B004AEA54 /* SwiftCalendar */,
+				509C88912DE2897B004AEA54 /* SwiftCalendar.app */,
+				509C88922DE2897B004AEA54 /* SwiftCalendarTests.xctest */,
+				509C88932DE2897B004AEA54 /* SwiftCalendarUITests.xctest */,
 			);
 			sourceTree = "<group>";
 		};
-		509C88602DE286D2004AEA54 /* Products */ = {
+		509C88982DE2897B004AEA54 /* SwiftCalendar */ = {
 			isa = PBXGroup;
 			children = (
-				509C885F2DE286D2004AEA54 /* SwiftCalendar.app */,
-				509C886C2DE286D3004AEA54 /* SwiftCalendarTests.xctest */,
-				509C88762DE286D3004AEA54 /* SwiftCalendarUITests.xctest */,
+				509C88A02DE28A43004AEA54 /* Services */,
+				509C889F2DE28A38004AEA54 /* ViewModels */,
+				509C889E2DE28A2E004AEA54 /* Views */,
+				509C889D2DE28989004AEA54 /* Models */,
+				509C88942DE2897B004AEA54 /* Assets.xcassets */,
+				509C88952DE2897B004AEA54 /* ContentView.swift */,
+				509C88962DE2897B004AEA54 /* GoogleService-Info.plist */,
+				509C88972DE2897B004AEA54 /* SwiftCalendarApp.swift */,
 			);
-			name = Products;
+			path = SwiftCalendar;
+			sourceTree = "<group>";
+		};
+		509C889D2DE28989004AEA54 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				509C88A32DE28AB5004AEA54 /* Event.swift */,
+				509C88A12DE28A7C004AEA54 /* User.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		509C889E2DE28A2E004AEA54 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		509C889F2DE28A38004AEA54 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		509C88A02DE28A43004AEA54 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Services;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -114,16 +158,13 @@
 			);
 			dependencies = (
 			);
-			fileSystemSynchronizedGroups = (
-				509C88612DE286D2004AEA54 /* SwiftCalendar */,
-			);
 			name = SwiftCalendar;
 			packageProductDependencies = (
 				509C888A2DE28745004AEA54 /* FirebaseAuth */,
 				509C888C2DE28745004AEA54 /* FirebaseFirestore */,
 			);
 			productName = SwiftCalendar;
-			productReference = 509C885F2DE286D2004AEA54 /* SwiftCalendar.app */;
+			productReference = 509C88912DE2897B004AEA54 /* SwiftCalendar.app */;
 			productType = "com.apple.product-type.application";
 		};
 		509C886B2DE286D3004AEA54 /* SwiftCalendarTests */ = {
@@ -146,7 +187,7 @@
 			packageProductDependencies = (
 			);
 			productName = SwiftCalendarTests;
-			productReference = 509C886C2DE286D3004AEA54 /* SwiftCalendarTests.xctest */;
+			productReference = 509C88922DE2897B004AEA54 /* SwiftCalendarTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		509C88752DE286D3004AEA54 /* SwiftCalendarUITests */ = {
@@ -169,7 +210,7 @@
 			packageProductDependencies = (
 			);
 			productName = SwiftCalendarUITests;
-			productReference = 509C88762DE286D3004AEA54 /* SwiftCalendarUITests.xctest */;
+			productReference = 509C88932DE2897B004AEA54 /* SwiftCalendarUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -208,7 +249,7 @@
 				509C88892DE28745004AEA54 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 509C88602DE286D2004AEA54 /* Products */;
+			productRefGroup = 509C88562DE286D2004AEA54;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -224,6 +265,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				509C889B2DE2897B004AEA54 /* Assets.xcassets in Resources */,
+				509C889C2DE2897B004AEA54 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -248,6 +291,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				509C88992DE2897B004AEA54 /* ContentView.swift in Sources */,
+				509C889A2DE2897B004AEA54 /* SwiftCalendarApp.swift in Sources */,
+				509C88A42DE28AB5004AEA54 /* Event.swift in Sources */,
+				509C88A22DE28A7C004AEA54 /* User.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
