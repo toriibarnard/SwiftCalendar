@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		509C888B2DE28745004AEA54 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 509C888A2DE28745004AEA54 /* FirebaseAuth */; };
+		509C888D2DE28745004AEA54 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 509C888C2DE28745004AEA54 /* FirebaseFirestore */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		509C886D2DE286D3004AEA54 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +57,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				509C888B2DE28745004AEA54 /* FirebaseAuth in Frameworks */,
+				509C888D2DE28745004AEA54 /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +119,8 @@
 			);
 			name = SwiftCalendar;
 			packageProductDependencies = (
+				509C888A2DE28745004AEA54 /* FirebaseAuth */,
+				509C888C2DE28745004AEA54 /* FirebaseFirestore */,
 			);
 			productName = SwiftCalendar;
 			productReference = 509C885F2DE286D2004AEA54 /* SwiftCalendar.app */;
@@ -195,6 +204,9 @@
 			);
 			mainGroup = 509C88562DE286D2004AEA54;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				509C88892DE28745004AEA54 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 509C88602DE286D2004AEA54 /* Products */;
 			projectDirPath = "";
@@ -550,6 +562,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		509C88892DE28745004AEA54 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.13.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		509C888A2DE28745004AEA54 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 509C88892DE28745004AEA54 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		509C888C2DE28745004AEA54 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 509C88892DE28745004AEA54 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 509C88572DE286D2004AEA54 /* Project object */;
 }
