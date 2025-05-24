@@ -18,6 +18,7 @@ struct SwiftCalendarApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(AuthenticationViewModel())
         }
     }
 }

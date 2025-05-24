@@ -7,6 +7,51 @@
 
 
 import SwiftUI
+import UIKit
+
+struct CleanSecureField: UIViewRepresentable {
+    @Binding var text: String
+    var placeholder: String
+    
+    func makeUIView(context: Context) -> UITextField {
+        let textField = UITextField()
+        textField.placeholder = placeholder
+        textField.isSecureTextEntry = true
+        textField.borderStyle = .roundedRect
+        textField.autocorrectionType = .no
+        textField.autocapitalizationType = .none
+        textField.textContentType = .init(rawValue: "") // ← REDDIT SOLUTION!
+        textField.passwordRules = nil
+        textField.delegate = context.coordinator
+        return textField
+    }
+    
+    func updateUIView(_ uiView: UITextField, context: Context) {
+        if uiView.text != text {
+            uiView.text = text
+        }
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UITextFieldDelegate {
+        let parent: CleanSecureField
+        
+        init(_ parent: CleanSecureField) {
+            self.parent = parent
+        }
+        
+        func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+            let newText = (textField.text as NSString?)?.replacingCharacters(in: range, with: string) ?? string
+            DispatchQueue.main.async {
+                self.parent.text = newText
+            }
+            return true
+        }
+    }
+}
 
 struct AuthenticationView: View {
     @EnvironmentObject var viewModel: AuthenticationViewModel
@@ -43,12 +88,12 @@ struct AuthenticationView: View {
                         .autocapitalization(.none)
                         .keyboardType(.emailAddress)
                     
-                    SecureField("Password", text: $viewModel.password)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                    CleanSecureField(text: $viewModel.password, placeholder: "Password")
+                        .frame(height: 36)
                     
                     if viewModel.isSignUpMode {
-                        SecureField("Confirm Password", text: $viewModel.confirmPassword)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                        CleanSecureField(text: $viewModel.confirmPassword, placeholder: "Confirm Password")
+                            .frame(height: 36)
                     }
                 }
                 
