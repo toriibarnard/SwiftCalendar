@@ -16,6 +16,7 @@
 		509C88A22DE28A7C004AEA54 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = 509C88A12DE28A7C004AEA54 /* User.swift */; };
 		509C88A42DE28AB5004AEA54 /* Event.swift in Sources */ = {isa = PBXBuildFile; fileRef = 509C88A32DE28AB5004AEA54 /* Event.swift */; };
 		509C88A62DE28B16004AEA54 /* AuthenticationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 509C88A52DE28B16004AEA54 /* AuthenticationService.swift */; };
+		509C88A82DE28B58004AEA54 /* AuthenticationViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 509C88A72DE28B58004AEA54 /* AuthenticationViewModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -46,6 +47,7 @@
 		509C88A12DE28A7C004AEA54 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		509C88A32DE28AB5004AEA54 /* Event.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Event.swift; sourceTree = "<group>"; };
 		509C88A52DE28B16004AEA54 /* AuthenticationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationService.swift; sourceTree = "<group>"; };
+		509C88A72DE28B58004AEA54 /* AuthenticationViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -134,6 +136,7 @@
 		509C889F2DE28A38004AEA54 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				509C88A72DE28B58004AEA54 /* AuthenticationViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -294,6 +297,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				509C88A82DE28B58004AEA54 /* AuthenticationViewModel.swift in Sources */,
 				509C88992DE2897B004AEA54 /* ContentView.swift in Sources */,
 				509C889A2DE2897B004AEA54 /* SwiftCalendarApp.swift in Sources */,
 				509C88A42DE28AB5004AEA54 /* Event.swift in Sources */,
