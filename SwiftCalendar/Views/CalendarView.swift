@@ -8,61 +8,67 @@ import SwiftUI
 
 struct CalendarView: View {
     @State private var currentWeek = Date()
-    @State private var showingAddEvent = false
+    @StateObject private var scheduleManager = ScheduleManager()
     
-    // Sample fixed events for demo
-    @State private var fixedEvents: [CalendarEvent] = [
-        CalendarEvent(userId: "demo", title: "Work", startDate: Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: Date())!, endDate: Calendar.current.date(bySettingHour: 17, minute: 0, second: 0, of: Date())!, isFixed: true, category: .work),
-        CalendarEvent(userId: "demo", title: "Soccer", startDate: Calendar.current.date(bySettingHour: 19, minute: 0, second: 0, of: Date())!, endDate: Calendar.current.date(bySettingHour: 21, minute: 0, second: 0, of: Date())!, isFixed: true, category: .fitness)
-    ]
-    
-    // AI-suggested flexible events
-    @State private var flexibleEvents: [CalendarEvent] = [
-        CalendarEvent(userId: "demo", title: "🤖 Gym Session", startDate: Calendar.current.date(bySettingHour: 6, minute: 0, second: 0, of: Date())!, endDate: Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date())!, isFixed: false, category: .fitness),
-        CalendarEvent(userId: "demo", title: "🤖 Running", startDate: Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: Date())!, endDate: Calendar.current.date(bySettingHour: 19, minute: 0, second: 0, of: Date())!, isFixed: false, category: .fitness)
-    ]
-    
-    var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                // Week Navigation Header
-                WeekHeaderView(currentWeek: $currentWeek)
-                
-                // Weekly Calendar Grid
-                ScrollView {
-                    WeeklyCalendarGrid(
-                        currentWeek: currentWeek,
-                        fixedEvents: fixedEvents,
-                        flexibleEvents: flexibleEvents
-                    )
-                }
-            }
-            .navigationTitle("This Week")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        showingAddEvent = true
-                    }) {
-                        Image(systemName: "plus")
-                    }
-                }
-            }
-            .sheet(isPresented: $showingAddEvent) {
-                AddFixedEventView()
-            }
-        }
-    }
-}
-
-struct WeekHeaderView: View {
-    @Binding var currentWeek: Date
+    let hours = Array(5...23) // 5 AM to 11 PM
     
     var weekDays: [Date] {
         guard let weekInterval = Calendar.current.dateInterval(of: .weekOfYear, for: currentWeek) else { return [] }
         let startOfWeek = weekInterval.start
         return (0..<7).compactMap { Calendar.current.date(byAdding: .day, value: $0, to: startOfWeek) }
     }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                // Week Navigation Header
+                WeekHeaderSection(currentWeek: $currentWeek, weekDays: weekDays)
+                
+                // AI Status
+                if scheduleManager.isProcessing {
+                    HStack {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                        Text("🤖 AI is optimizing your schedule...")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                    }
+                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity)
+                    .background(Color.blue.opacity(0.1))
+                }
+                
+                // Weekly Calendar Grid
+                ScrollView {
+                    WeeklyGridSection(
+                        hours: hours,
+                        weekDays: weekDays,
+                        scheduleManager: scheduleManager
+                    )
+                }
+            }
+            .navigationTitle("This Week")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Clear") {
+                        scheduleManager.clearSchedule()
+                    }
+                    .foregroundColor(.red)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("🤖 AI") {
+                        scheduleManager.processAIRequest("demo")
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct WeekHeaderSection: View {
+    @Binding var currentWeek: Date
+    let weekDays: [Date]
     
     var body: some View {
         VStack(spacing: 10) {
@@ -77,7 +83,7 @@ struct WeekHeaderView: View {
                 
                 Spacer()
                 
-                Text(currentWeek, formatter: DateFormatter.weekRange)
+                Text(currentWeek, formatter: weekRangeFormatter)
                     .font(.headline)
                 
                 Spacer()
@@ -100,10 +106,10 @@ struct WeekHeaderView: View {
                 
                 ForEach(weekDays, id: \.self) { day in
                     VStack(spacing: 2) {
-                        Text(day, formatter: DateFormatter.dayOfWeek)
+                        Text(day, formatter: dayOfWeekFormatter)
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        Text(day, formatter: DateFormatter.dayNumber)
+                        Text(day, formatter: dayNumberFormatter)
                             .font(.headline)
                             .foregroundColor(Calendar.current.isDateInToday(day) ? .blue : .primary)
                     }
@@ -118,36 +124,27 @@ struct WeekHeaderView: View {
     }
 }
 
-struct WeeklyCalendarGrid: View {
-    let currentWeek: Date
-    let fixedEvents: [CalendarEvent]
-    let flexibleEvents: [CalendarEvent]
-    
-    var weekDays: [Date] {
-        guard let weekInterval = Calendar.current.dateInterval(of: .weekOfYear, for: currentWeek) else { return [] }
-        let startOfWeek = weekInterval.start
-        return (0..<7).compactMap { Calendar.current.date(byAdding: .day, value: $0, to: startOfWeek) }
-    }
-    
-    let hours = Array(0...23) // 12 AM to 11 PM
+struct WeeklyGridSection: View {
+    let hours: [Int]
+    let weekDays: [Date]
+    @ObservedObject var scheduleManager: ScheduleManager
     
     var body: some View {
         VStack(spacing: 0) {
             ForEach(hours, id: \.self) { hour in
                 HStack(spacing: 0) {
                     // Time label
-                    Text("\(hour):00")
+                    Text(formatHour(hour))
                         .font(.caption)
                         .frame(width: 50)
                         .foregroundColor(.secondary)
                     
                     // Day columns
                     ForEach(weekDays, id: \.self) { day in
-                        TimeSlotView(
+                        TimeSlotCell(
                             day: day,
                             hour: hour,
-                            fixedEvents: fixedEvents,
-                            flexibleEvents: flexibleEvents
+                            scheduleManager: scheduleManager
                         )
                         .frame(height: 60)
                         .frame(maxWidth: .infinity)
@@ -158,161 +155,118 @@ struct WeeklyCalendarGrid: View {
         }
         .padding(.horizontal)
     }
+    
+    func formatHour(_ hour: Int) -> String {
+        if hour == 0 { return "12 AM" }
+        if hour < 12 { return "\(hour) AM" }
+        if hour == 12 { return "12 PM" }
+        return "\(hour - 12) PM"
+    }
 }
 
-struct TimeSlotView: View {
+struct TimeSlotCell: View {
     let day: Date
     let hour: Int
-    let fixedEvents: [CalendarEvent]
-    let flexibleEvents: [CalendarEvent]
+    @ObservedObject var scheduleManager: ScheduleManager
     
-    var timeSlot: Date {
-        Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: day) ?? day
-    }
-    
-    var eventsInSlot: [CalendarEvent] {
-        let allEvents = fixedEvents + flexibleEvents
-        return allEvents.filter { event in
-            let eventHour = Calendar.current.component(.hour, from: event.startDate)
-            let eventDay = Calendar.current.startOfDay(for: event.startDate)
-            let slotDay = Calendar.current.startOfDay(for: day)
-            return eventDay == slotDay && eventHour == hour
-        }
+    var eventInSlot: ScheduleEvent? {
+        scheduleManager.getEvent(for: day, hour: hour)
     }
     
     var body: some View {
         ZStack {
-            // Background color based on current time
+            // Background
             if Calendar.current.isDateInToday(day) && Calendar.current.component(.hour, from: Date()) == hour {
                 Color.blue.opacity(0.1)
             } else {
                 Color.clear
             }
             
-            // Events in this time slot
-            if let event = eventsInSlot.first {
-                EventBlockView(event: event)
+            // Event block
+            if let event = eventInSlot {
+                EventBlock(event: event)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if eventInSlot != nil {
+                // Handle event tap
+                print("Tapped event: \(eventInSlot?.title ?? "")")
+            } else {
+                // Handle empty slot tap
+                print("Tapped empty slot at \(hour):00")
             }
         }
     }
 }
 
-struct EventBlockView: View {
-    let event: CalendarEvent
+struct EventBlock: View {
+    let event: ScheduleEvent
     
     var body: some View {
         VStack(spacing: 2) {
-            Text(event.title)
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundColor(.white)
-                .multilineTextAlignment(.center)
+            HStack {
+                if event.isAIGenerated {
+                    Text("🤖")
+                        .font(.caption2)
+                }
+                Text(event.title)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                Spacer(minLength: 0)
+            }
+            
+            if event.duration > 60 {
+                Text("\(event.duration/60)h")
+                    .font(.caption2)
+                    .foregroundColor(.white.opacity(0.8))
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(2)
         .background(
             RoundedRectangle(cornerRadius: 4)
-                .fill(Color(event.category.color))
-                .opacity(event.isFixed ? 1.0 : 0.7)
+                .fill(categoryColor(event.category))
+                .opacity(event.isFixed ? 1.0 : 0.8)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 4)
-                .stroke(event.isFixed ? Color.clear : Color.white, lineWidth: event.isFixed ? 0 : 2)
+                .stroke(event.isAIGenerated ? Color.white : Color.clear, lineWidth: 1.5)
         )
-        .padding(2)
     }
-}
-
-struct AddFixedEventView: View {
-    @Environment(\.presentationMode) var presentationMode
-    @State private var title = ""
-    @State private var selectedDays: Set<Int> = []
-    @State private var startTime = Date()
-    @State private var endTime = Date().addingTimeInterval(3600)
-    @State private var category = EventCategory.work
     
-    let daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-    
-    var body: some View {
-        NavigationView {
-            Form {
-                Section("Event Details") {
-                    TextField("Event Title", text: $title)
-                        .textContentType(.none)
-                    
-                    Picker("Category", selection: $category) {
-                        ForEach(EventCategory.allCases, id: \.self) { category in
-                            Text(category.rawValue.capitalized).tag(category)
-                        }
-                    }
-                }
-                
-                Section("Schedule") {
-                    ForEach(0..<7, id: \.self) { dayIndex in
-                        HStack {
-                            Text(daysOfWeek[dayIndex])
-                            Spacer()
-                            if selectedDays.contains(dayIndex) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.blue)
-                            } else {
-                                Image(systemName: "circle")
-                                    .foregroundColor(.gray)
-                            }
-                        }
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            if selectedDays.contains(dayIndex) {
-                                selectedDays.remove(dayIndex)
-                            } else {
-                                selectedDays.insert(dayIndex)
-                            }
-                        }
-                    }
-                    
-                    DatePicker("Start Time", selection: $startTime, displayedComponents: .hourAndMinute)
-                    DatePicker("End Time", selection: $endTime, displayedComponents: .hourAndMinute)
-                }
-            }
-            .navigationTitle("Add Fixed Event")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        presentationMode.wrappedValue.dismiss()
-                    }
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
-                        // TODO: Save fixed event logic
-                        presentationMode.wrappedValue.dismiss()
-                    }
-                    .disabled(title.isEmpty || selectedDays.isEmpty)
-                }
-            }
+    func categoryColor(_ category: EventCategory) -> Color {
+        switch category {
+        case .work: return .red
+        case .fitness: return .green
+        case .personal: return .blue
+        case .study: return .purple
+        case .health: return .orange
+        case .social: return .pink
+        case .other: return .gray
         }
     }
 }
 
 // Date formatters
-extension DateFormatter {
-    static let weekRange: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d"
-        return formatter
-    }()
-    
-    static let dayOfWeek: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEE"
-        return formatter
-    }()
-    
-    static let dayNumber: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "d"
-        return formatter
-    }()
-}
+let weekRangeFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "MMM d"
+    return formatter
+}()
+
+let dayOfWeekFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "EEE"
+    return formatter
+}()
+
+let dayNumberFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "d"
+    return formatter
+}()
 
 #Preview {
     CalendarView()
