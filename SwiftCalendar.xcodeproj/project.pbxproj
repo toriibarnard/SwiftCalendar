@@ -21,6 +21,9 @@
 		509C88A82DE28B58004AEA54 /* AuthenticationViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 509C88A72DE28B58004AEA54 /* AuthenticationViewModel.swift */; };
 		509C88AA2DE28B93004AEA54 /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 509C88A92DE28B93004AEA54 /* AuthenticationView.swift */; };
 		509C88AC2DE29077004AEA54 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 509C88AB2DE29077004AEA54 /* CalendarView.swift */; };
+		50D587092DE93A750039751C /* OpenAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50D587082DE93A750039751C /* OpenAIService.swift */; };
+		50D5870B2DE93FF70039751C /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50D5870A2DE93FF70039751C /* ChatView.swift */; };
+		50D5870D2DE9400B0039751C /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50D5870C2DE9400B0039751C /* ChatViewModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -56,6 +59,9 @@
 		509C88A72DE28B58004AEA54 /* AuthenticationViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationViewModel.swift; sourceTree = "<group>"; };
 		509C88A92DE28B93004AEA54 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationView.swift; sourceTree = "<group>"; };
 		509C88AB2DE29077004AEA54 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
+		50D587082DE93A750039751C /* OpenAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIService.swift; sourceTree = "<group>"; };
+		50D5870A2DE93FF70039751C /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
+		50D5870C2DE9400B0039751C /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -138,6 +144,7 @@
 		509C889E2DE28A2E004AEA54 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				50D5870A2DE93FF70039751C /* ChatView.swift */,
 				509C88AB2DE29077004AEA54 /* CalendarView.swift */,
 				509C88A92DE28B93004AEA54 /* AuthenticationView.swift */,
 			);
@@ -147,6 +154,7 @@
 		509C889F2DE28A38004AEA54 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				50D5870C2DE9400B0039751C /* ChatViewModel.swift */,
 				506F54A62DE29C6400162589 /* ScheduleManager.swift */,
 				509C88A72DE28B58004AEA54 /* AuthenticationViewModel.swift */,
 			);
@@ -156,6 +164,7 @@
 		509C88A02DE28A43004AEA54 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				50D587082DE93A750039751C /* OpenAIService.swift */,
 				509C88A52DE28B16004AEA54 /* AuthenticationService.swift */,
 			);
 			path = Services;
@@ -311,10 +320,13 @@
 			files = (
 				509C88A82DE28B58004AEA54 /* AuthenticationViewModel.swift in Sources */,
 				509C88992DE2897B004AEA54 /* ContentView.swift in Sources */,
+				50D5870D2DE9400B0039751C /* ChatViewModel.swift in Sources */,
 				506F54A72DE29C6400162589 /* ScheduleManager.swift in Sources */,
 				509C88AC2DE29077004AEA54 /* CalendarView.swift in Sources */,
+				50D5870B2DE93FF70039751C /* ChatView.swift in Sources */,
 				509C889A2DE2897B004AEA54 /* SwiftCalendarApp.swift in Sources */,
 				509C88AA2DE28B93004AEA54 /* AuthenticationView.swift in Sources */,
+				50D587092DE93A750039751C /* OpenAIService.swift in Sources */,
 				506F54A52DE29C3D00162589 /* ScheduleEvent.swift in Sources */,
 				509C88A42DE28AB5004AEA54 /* Event.swift in Sources */,
 				509C88A22DE28A7C004AEA54 /* User.swift in Sources */,

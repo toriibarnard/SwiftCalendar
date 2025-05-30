@@ -5,7 +5,6 @@
 //  Created by Torii Barnard on 2025-05-24.
 //
 
-
 import Foundation
 import SwiftUI
 
@@ -34,6 +33,18 @@ class ScheduleManager: ObservableObject {
         events.append(newEvent)
     }
     
+    func addAIEvent(at timeSlot: Date, title: String, category: EventCategory, duration: Int) {
+        let newEvent = ScheduleEvent(
+            title: title,
+            startTime: timeSlot,
+            duration: duration,
+            category: category,
+            isFixed: true,
+            isAIGenerated: true
+        )
+        events.append(newEvent)
+    }
+    
     func deleteEvent(_ event: ScheduleEvent) {
         events.removeAll { $0.id == event.id }
     }
@@ -57,21 +68,55 @@ class ScheduleManager: ObservableObject {
         events.removeAll()
     }
     
-    func processAIRequest(_ request: String) {
-        isProcessing = true
+    func getEventsForDateRange(startDate: Date, endDate: Date) -> [ScheduleEvent] {
+        return events.filter { event in
+            event.startTime >= startDate && event.startTime <= endDate
+        }.sorted { $0.startTime < $1.startTime }
+    }
+    
+    func hasConflict(at timeSlot: Date, duration: Int) -> Bool {
+        let endTime = timeSlot.addingTimeInterval(TimeInterval(duration * 60))
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            self.isProcessing = false
-            self.generateDemoSchedule()
+        return events.contains { event in
+            let eventEndTime = event.startTime.addingTimeInterval(TimeInterval(event.duration * 60))
+            
+            // Check if the time ranges overlap
+            return (timeSlot < eventEndTime && endTime > event.startTime)
         }
     }
     
-    private func generateDemoSchedule() {
-        let today = Date()
-        events = [
-            ScheduleEvent(title: "🤖 Morning Run", startTime: Calendar.current.date(bySettingHour: 6, minute: 0, second: 0, of: today)!, duration: 45, category: .fitness, isFixed: false, isAIGenerated: true),
-            ScheduleEvent(title: "Work", startTime: Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: today)!, duration: 480, category: .work, isFixed: true, isAIGenerated: false),
-            ScheduleEvent(title: "🤖 Gym Session", startTime: Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: today)!, duration: 90, category: .fitness, isFixed: false, isAIGenerated: true)
-        ]
+    func findAvailableSlots(for duration: Int, within dateRange: (start: Date, end: Date), preferredTimes: [Int] = []) -> [Date] {
+        var availableSlots: [Date] = []
+        let calendar = Calendar.current
+        
+        var currentTime = dateRange.start
+        while currentTime < dateRange.end {
+            let hour = calendar.component(.hour, from: currentTime)
+            
+            // Skip hours outside working hours (5 AM to 11 PM)
+            if hour >= 5 && hour <= 23 {
+                if !hasConflict(at: currentTime, duration: duration) {
+                    availableSlots.append(currentTime)
+                }
+            }
+            
+            // Move to next hour
+            currentTime = calendar.date(byAdding: .hour, value: 1, to: currentTime) ?? currentTime
+        }
+        
+        // Sort by preferred times if provided
+        if !preferredTimes.isEmpty {
+            availableSlots.sort { slot1, slot2 in
+                let hour1 = calendar.component(.hour, from: slot1)
+                let hour2 = calendar.component(.hour, from: slot2)
+                
+                let index1 = preferredTimes.firstIndex(of: hour1) ?? Int.max
+                let index2 = preferredTimes.firstIndex(of: hour2) ?? Int.max
+                
+                return index1 < index2
+            }
+        }
+        
+        return availableSlots
     }
 }

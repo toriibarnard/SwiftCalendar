@@ -8,7 +8,7 @@ import SwiftUI
 
 struct CalendarView: View {
     @State private var currentWeek = Date()
-    @StateObject private var scheduleManager = ScheduleManager()
+    @ObservedObject var scheduleManager: ScheduleManager
     
     let hours = Array(5...23) // 5 AM to 11 PM
     
@@ -57,8 +57,15 @@ struct CalendarView: View {
                     .foregroundColor(.red)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("🤖 AI") {
-                        scheduleManager.processAIRequest("demo")
+                    Menu {
+                        Button("Add Event") {
+                            // Add manual event
+                        }
+                        Button("View Month") {
+                            // Switch to month view
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
                     }
                 }
             }
@@ -214,17 +221,18 @@ struct EventBlock: View {
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundColor(.white)
+                    .lineLimit(1)
                 Spacer(minLength: 0)
             }
             
             if event.duration > 60 {
-                Text("\(event.duration/60)h")
+                Text("\(event.duration/60)h \(event.duration%60)m")
                     .font(.caption2)
                     .foregroundColor(.white.opacity(0.8))
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(2)
+        .padding(4)
         .background(
             RoundedRectangle(cornerRadius: 4)
                 .fill(categoryColor(event.category))
@@ -269,5 +277,5 @@ let dayNumberFormatter: DateFormatter = {
 }()
 
 #Preview {
-    CalendarView()
+    CalendarView(scheduleManager: ScheduleManager())
 }

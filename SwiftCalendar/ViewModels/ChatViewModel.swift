@@ -1,0 +1,187 @@
+//
+//  ChatMessage.swift
+//  SwiftCalendar
+//
+//  Created by Torii Barnard on 2025-05-29.
+//
+
+
+//
+//  ChatViewModel.swift
+//  SwiftCalendar
+//
+//  View model for managing AI chat interactions
+//
+
+import Foundation
+import SwiftUI
+import Combine
+
+struct ChatMessage: Identifiable {
+    let id = UUID()
+    let content: String
+    let isUser: Bool
+    let timestamp: Date
+}
+
+@MainActor
+class ChatViewModel: ObservableObject {
+    @Published var messages: [ChatMessage] = []
+    @Published var inputText = ""
+    @Published var isLoading = false
+    @Published var errorMessage = ""
+    
+    private let openAIService = OpenAIService.shared
+    private var conversationHistory: [OpenAIService.ChatMessage] = []
+    weak var scheduleManager: ScheduleManager?
+    
+    init() {
+        // Add welcome message
+        messages.append(ChatMessage(
+            content: "Hi! I'm your AI calendar assistant. I can help you:\n• Add events to your calendar\n• Find the best times for activities\n• Manage your schedule\n\nJust tell me what you need!",
+            isUser: false,
+            timestamp: Date()
+        ))
+    }
+    
+    func sendMessage() {
+        guard !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        
+        let userMessage = inputText
+        inputText = ""
+        
+        // Add user message to chat
+        messages.append(ChatMessage(
+            content: userMessage,
+            isUser: true,
+            timestamp: Date()
+        ))
+        
+        isLoading = true
+        errorMessage = ""
+        
+        Task {
+            do {
+                let (response, functionCall) = try await openAIService.sendMessage(userMessage, conversationHistory: conversationHistory)
+                
+                // Update conversation history
+                conversationHistory.append(OpenAIService.ChatMessage(role: "user", content: userMessage))
+                conversationHistory.append(OpenAIService.ChatMessage(role: "assistant", content: response))
+                
+                // Handle function calls if any
+                if let functionCall = functionCall {
+                    await handleFunctionCall(functionCall)
+                }
+                
+                // Add AI response to chat
+                messages.append(ChatMessage(
+                    content: response,
+                    isUser: false,
+                    timestamp: Date()
+                ))
+                
+                isLoading = false
+            } catch {
+                errorMessage = "Failed to get response: \(error.localizedDescription)"
+                isLoading = false
+            }
+        }
+    }
+    
+    private func handleFunctionCall(_ functionCall: OpenAIService.FunctionCall) async {
+        guard let scheduleManager = scheduleManager else { return }
+        
+        do {
+            let arguments = try JSONSerialization.jsonObject(with: Data(functionCall.arguments.utf8)) as? [String: Any] ?? [:]
+            
+            switch functionCall.name {
+            case "add_event":
+                await handleAddEvent(arguments: arguments, scheduleManager: scheduleManager)
+                
+            case "suggest_time":
+                await handleSuggestTime(arguments: arguments, scheduleManager: scheduleManager)
+                
+            case "get_schedule":
+                await handleGetSchedule(arguments: arguments, scheduleManager: scheduleManager)
+                
+            default:
+                print("Unknown function: \(functionCall.name)")
+            }
+        } catch {
+            print("Failed to parse function arguments: \(error)")
+        }
+    }
+    
+    private func handleAddEvent(arguments: [String: Any], scheduleManager: ScheduleManager) async {
+        guard let title = arguments["title"] as? String,
+              let startDateString = arguments["start_date"] as? String,
+              let endDateString = arguments["end_date"] as? String,
+              let categoryString = arguments["category"] as? String else { return }
+        
+        let formatter = ISO8601DateFormatter()
+        guard let startDate = formatter.date(from: startDateString),
+              let endDate = formatter.date(from: endDateString) else { return }
+        
+        let category = EventCategory(rawValue: categoryString) ?? .other
+        let isRecurring = arguments["is_recurring"] as? Bool ?? false
+        let recurrenceDays = arguments["recurrence_days"] as? [Int] ?? []
+        
+        if isRecurring && !recurrenceDays.isEmpty {
+            // Create recurring events for the next 4 weeks
+            let calendar = Calendar.current
+            let endOfMonth = calendar.date(byAdding: .month, value: 1, to: Date()) ?? Date()
+            
+            var currentDate = startDate
+            while currentDate <= endOfMonth {
+                let weekday = calendar.component(.weekday, from: currentDate) - 1 // Convert to 0-based
+                if recurrenceDays.contains(weekday) {
+                    let eventStart = calendar.date(bySettingHour: calendar.component(.hour, from: startDate),
+                                                   minute: calendar.component(.minute, from: startDate),
+                                                   second: 0,
+                                                   of: currentDate) ?? currentDate
+                    let eventEnd = calendar.date(bySettingHour: calendar.component(.hour, from: endDate),
+                                                 minute: calendar.component(.minute, from: endDate),
+                                                 second: 0,
+                                                 of: currentDate) ?? currentDate
+                    
+                    let duration = Int(eventEnd.timeIntervalSince(eventStart) / 60)
+                    scheduleManager.addAIEvent(
+                        at: eventStart,
+                        title: title,
+                        category: category,
+                        duration: duration
+                    )
+                }
+                currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
+            }
+        } else {
+            // Single event
+            let duration = Int(endDate.timeIntervalSince(startDate) / 60)
+            scheduleManager.addAIEvent(
+                at: startDate,
+                title: title,
+                category: category,
+                duration: duration
+            )
+        }
+    }
+    
+    private func handleSuggestTime(arguments: [String: Any], scheduleManager: ScheduleManager) async {
+        // This would analyze the current schedule and suggest optimal times
+        // For now, we'll rely on the AI's response text
+    }
+    
+    private func handleGetSchedule(arguments: [String: Any], scheduleManager: ScheduleManager) async {
+        // This would fetch and format the current schedule
+        // For now, we'll rely on the AI's response text
+    }
+}
+
+// Extension for Date formatting
+extension Date {
+    func chatFormat() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm a"
+        return formatter.string(from: self)
+    }
+}
