@@ -134,6 +134,28 @@ class OpenAIService {
                 )
             ),
             FunctionDefinition(
+                name: "remove_event",
+                description: "Remove an event from the calendar",
+                parameters: FunctionDefinition.Parameters(
+                    type: "object",
+                    properties: [
+                        "event_title": FunctionDefinition.Property(
+                            type: "string",
+                            description: "The title or partial title of the event to remove",
+                            enum: nil,
+                            items: nil
+                        ),
+                        "date": FunctionDefinition.Property(
+                            type: "string",
+                            description: "The date of the event in ISO format (optional, if multiple events have same title)",
+                            enum: nil,
+                            items: nil
+                        )
+                    ],
+                    required: ["event_title"]
+                )
+            ),
+            FunctionDefinition(
                 name: "suggest_time",
                 description: "Suggest optimal times for an activity",
                 parameters: FunctionDefinition.Parameters(
@@ -197,12 +219,14 @@ class OpenAIService {
                 content: """
                 You are Ty, a friendly and helpful AI calendar assistant for Swift Calendar app. You help users manage their schedule by:
                 1. Adding events to their calendar when they tell you about their commitments
-                2. Suggesting optimal times for activities based on their existing schedule
-                3. Understanding natural language requests about scheduling
+                2. Removing events when users ask you to delete or cancel them
+                3. Suggesting optimal times for activities based on their existing schedule
+                4. Understanding natural language requests about scheduling
                 
                 Your personality is friendly, casual, and encouraging. You're like a supportive personal assistant who wants to help people stay organized and achieve their goals.
                 
                 When users mention regular commitments (like "I work 9-5 on weekdays"), create recurring events.
+                When users ask to remove/delete/cancel events, use the remove_event function.
                 When users ask for suggestions (like "when should I go to the gym"), analyze their schedule and suggest optimal times.
                 Always be conversational and helpful. Use the provided functions to manage the calendar.
                 

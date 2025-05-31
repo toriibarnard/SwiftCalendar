@@ -106,6 +106,9 @@ class ChatViewModel: ObservableObject {
             case "get_schedule":
                 await handleGetSchedule(arguments: arguments, scheduleManager: scheduleManager)
                 
+            case "remove_event":
+                await handleRemoveEvent(arguments: arguments, scheduleManager: scheduleManager)
+                
             default:
                 print("❌ Unknown function: \(functionCall.name)")
             }
@@ -191,6 +194,51 @@ class ChatViewModel: ObservableObject {
         }
         
         print("📅 Total events in schedule: \(scheduleManager.events.count)")
+    }
+    
+    private func handleRemoveEvent(arguments: [String: Any], scheduleManager: ScheduleManager) async {
+        print("🎯 Handling remove_event function")
+        
+        guard let eventTitle = arguments["event_title"] as? String else {
+            print("❌ Missing event title")
+            return
+        }
+        
+        let dateString = arguments["date"] as? String
+        var targetDate: Date? = nil
+        
+        if let dateString = dateString {
+            let formatter = ISO8601DateFormatter()
+            targetDate = formatter.date(from: dateString)
+        }
+        
+        // Find matching events
+        let matchingEvents = scheduleManager.events.filter { event in
+            let titleMatches = event.title.lowercased().contains(eventTitle.lowercased())
+            
+            if let targetDate = targetDate {
+                let calendar = Calendar.current
+                let eventDay = calendar.startOfDay(for: event.startTime)
+                let targetDay = calendar.startOfDay(for: targetDate)
+                return titleMatches && eventDay == targetDay
+            }
+            
+            return titleMatches
+        }
+        
+        print("📋 Found \(matchingEvents.count) matching events")
+        
+        // Remove all matching events
+        for event in matchingEvents {
+            scheduleManager.deleteEvent(event)
+            print("🗑️ Removed: \(event.title) at \(event.startTime)")
+        }
+        
+        if matchingEvents.isEmpty {
+            print("❌ No events found matching '\(eventTitle)'")
+        } else {
+            print("✅ Removed \(matchingEvents.count) event(s)")
+        }
     }
     
     private func handleSuggestTime(arguments: [String: Any], scheduleManager: ScheduleManager) async {
