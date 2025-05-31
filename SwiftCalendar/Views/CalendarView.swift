@@ -9,6 +9,7 @@ import SwiftUI
 struct CalendarView: View {
     @State private var currentWeek = Date()
     @ObservedObject var scheduleManager: ScheduleManager
+    @State private var showingAddEvent = false
     
     let hours = Array(5...23) // 5 AM to 11 PM
     
@@ -59,7 +60,7 @@ struct CalendarView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Button("Add Event") {
-                            // Add manual event
+                            showingAddEvent = true
                         }
                         Button("View Month") {
                             // Switch to month view
@@ -67,6 +68,66 @@ struct CalendarView: View {
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
+                }
+            }
+            .sheet(isPresented: $showingAddEvent) {
+                AddEventView(scheduleManager: scheduleManager, isPresented: $showingAddEvent)
+            }
+        }
+    }
+}
+
+struct AddEventView: View {
+    @ObservedObject var scheduleManager: ScheduleManager
+    @Binding var isPresented: Bool
+    
+    @State private var title = ""
+    @State private var selectedDate = Date()
+    @State private var duration = 60
+    @State private var selectedCategory = EventCategory.personal
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Event Details")) {
+                    TextField("Event Title", text: $title)
+                    
+                    Picker("Category", selection: $selectedCategory) {
+                        ForEach(EventCategory.allCases, id: \.self) { category in
+                            Text(category.rawValue.capitalized).tag(category)
+                        }
+                    }
+                    
+                    DatePicker("Date & Time", selection: $selectedDate, displayedComponents: [.date, .hourAndMinute])
+                    
+                    Picker("Duration", selection: $duration) {
+                        Text("30 minutes").tag(30)
+                        Text("1 hour").tag(60)
+                        Text("1.5 hours").tag(90)
+                        Text("2 hours").tag(120)
+                        Text("3 hours").tag(180)
+                    }
+                }
+            }
+            .navigationTitle("Add Event")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        isPresented = false
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Add") {
+                        scheduleManager.addEvent(
+                            at: selectedDate,
+                            title: title,
+                            category: selectedCategory,
+                            duration: duration
+                        )
+                        isPresented = false
+                    }
+                    .disabled(title.isEmpty)
                 }
             }
         }

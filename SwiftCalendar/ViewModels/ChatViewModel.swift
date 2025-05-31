@@ -60,9 +60,13 @@ class ChatViewModel: ObservableObject {
                 conversationHistory.append(OpenAIService.ChatMessage(role: "user", content: userMessage))
                 conversationHistory.append(OpenAIService.ChatMessage(role: "assistant", content: response))
                 
-                // Handle function calls if any
+                // DEBUG: Log function call info
                 if let functionCall = functionCall {
+                    print("📞 Function call received: \(functionCall.name)")
+                    print("📝 Arguments: \(functionCall.arguments)")
                     await handleFunctionCall(functionCall)
+                } else {
+                    print("❌ No function call in response")
                 }
                 
                 // Add AI response to chat
@@ -74,6 +78,7 @@ class ChatViewModel: ObservableObject {
                 
                 isLoading = false
             } catch {
+                print("❌ Error: \(error)")
                 errorMessage = "Failed to get response: \(error.localizedDescription)"
                 isLoading = false
             }
@@ -81,10 +86,15 @@ class ChatViewModel: ObservableObject {
     }
     
     private func handleFunctionCall(_ functionCall: OpenAIService.FunctionCall) async {
-        guard let scheduleManager = scheduleManager else { return }
+        guard let scheduleManager = scheduleManager else {
+            print("❌ No schedule manager available")
+            return
+        }
         
         do {
             let arguments = try JSONSerialization.jsonObject(with: Data(functionCall.arguments.utf8)) as? [String: Any] ?? [:]
+            
+            print("📊 Parsed arguments: \(arguments)")
             
             switch functionCall.name {
             case "add_event":
@@ -97,32 +107,52 @@ class ChatViewModel: ObservableObject {
                 await handleGetSchedule(arguments: arguments, scheduleManager: scheduleManager)
                 
             default:
-                print("Unknown function: \(functionCall.name)")
+                print("❌ Unknown function: \(functionCall.name)")
             }
         } catch {
-            print("Failed to parse function arguments: \(error)")
+            print("❌ Failed to parse function arguments: \(error)")
         }
     }
     
     private func handleAddEvent(arguments: [String: Any], scheduleManager: ScheduleManager) async {
+        print("🎯 Handling add_event function")
+        
         guard let title = arguments["title"] as? String,
               let startDateString = arguments["start_date"] as? String,
               let endDateString = arguments["end_date"] as? String,
-              let categoryString = arguments["category"] as? String else { return }
+              let categoryString = arguments["category"] as? String else {
+            print("❌ Missing required arguments")
+            print("   title: \(arguments["title"] ?? "nil")")
+            print("   start_date: \(arguments["start_date"] ?? "nil")")
+            print("   end_date: \(arguments["end_date"] ?? "nil")")
+            print("   category: \(arguments["category"] ?? "nil")")
+            return
+        }
         
         let formatter = ISO8601DateFormatter()
         guard let startDate = formatter.date(from: startDateString),
-              let endDate = formatter.date(from: endDateString) else { return }
+              let endDate = formatter.date(from: endDateString) else {
+            print("❌ Failed to parse dates")
+            print("   start: \(startDateString)")
+            print("   end: \(endDateString)")
+            return
+        }
         
         let category = EventCategory(rawValue: categoryString) ?? .other
         let isRecurring = arguments["is_recurring"] as? Bool ?? false
         let recurrenceDays = arguments["recurrence_days"] as? [Int] ?? []
+        
+        print("✅ Creating event: \(title)")
+        print("   Category: \(category)")
+        print("   Start: \(startDate)")
+        print("   Recurring: \(isRecurring)")
         
         if isRecurring && !recurrenceDays.isEmpty {
             // Create recurring events for the next 4 weeks
             let calendar = Calendar.current
             let endOfMonth = calendar.date(byAdding: .month, value: 1, to: Date()) ?? Date()
             
+            var eventsCreated = 0
             var currentDate = startDate
             while currentDate <= endOfMonth {
                 let weekday = calendar.component(.weekday, from: currentDate) - 1 // Convert to 0-based
@@ -143,9 +173,11 @@ class ChatViewModel: ObservableObject {
                         category: category,
                         duration: duration
                     )
+                    eventsCreated += 1
                 }
                 currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
             }
+            print("✅ Created \(eventsCreated) recurring events")
         } else {
             // Single event
             let duration = Int(endDate.timeIntervalSince(startDate) / 60)
@@ -155,15 +187,20 @@ class ChatViewModel: ObservableObject {
                 category: category,
                 duration: duration
             )
+            print("✅ Created single event")
         }
+        
+        print("📅 Total events in schedule: \(scheduleManager.events.count)")
     }
     
     private func handleSuggestTime(arguments: [String: Any], scheduleManager: ScheduleManager) async {
+        print("🎯 Handling suggest_time function")
         // This would analyze the current schedule and suggest optimal times
         // For now, we'll rely on the AI's response text
     }
     
     private func handleGetSchedule(arguments: [String: Any], scheduleManager: ScheduleManager) async {
+        print("🎯 Handling get_schedule function")
         // This would fetch and format the current schedule
         // For now, we'll rely on the AI's response text
     }

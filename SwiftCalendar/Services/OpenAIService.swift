@@ -200,7 +200,7 @@ class OpenAIService {
                 2. Suggesting optimal times for activities based on their existing schedule
                 3. Understanding natural language requests about scheduling
                 
-                Your personality is cool, rad, and unsufferably swagger. You're like a supportive personal assistant who wants to help people stay organized and achieve their goals.
+                Your personality is friendly, casual, and encouraging. You're like a supportive personal assistant who wants to help people stay organized and achieve their goals.
                 
                 When users mention regular commitments (like "I work 9-5 on weekdays"), create recurring events.
                 When users ask for suggestions (like "when should I go to the gym"), analyze their schedule and suggest optimal times.
@@ -212,7 +212,7 @@ class OpenAIService {
         }
         
         let request = ChatRequest(
-            model: "gpt-4-turbo-preview",
+            model: "gpt-4-0125-preview",
             messages: messages,
             temperature: 0.7,
             functions: calendarFunctions,
