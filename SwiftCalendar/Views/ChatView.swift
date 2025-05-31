@@ -2,14 +2,6 @@
 //  ChatView.swift
 //  SwiftCalendar
 //
-//  Created by Torii Barnard on 2025-05-29.
-//
-
-
-//
-//  ChatView.swift
-//  SwiftCalendar
-//
 //  AI Chat interface for calendar management
 //
 
@@ -83,7 +75,7 @@ struct ChatView: View {
                 .padding()
                 .background(Color(UIColor.systemBackground))
             }
-            .navigationTitle("AI Assistant")
+            .navigationTitle("Ty")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

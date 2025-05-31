@@ -25,7 +25,7 @@ struct ContentView: View {
                     
                     ChatView(scheduleManager: scheduleManager)
                         .tabItem {
-                            Label("AI Assistant", systemImage: "message.fill")
+                            Label("Ty", systemImage: "message.fill")
                         }
                         .tag(1)
                     

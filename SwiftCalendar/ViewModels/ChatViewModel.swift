@@ -1,12 +1,4 @@
 //
-//  ChatMessage.swift
-//  SwiftCalendar
-//
-//  Created by Torii Barnard on 2025-05-29.
-//
-
-
-//
 //  ChatViewModel.swift
 //  SwiftCalendar
 //
@@ -38,7 +30,7 @@ class ChatViewModel: ObservableObject {
     init() {
         // Add welcome message
         messages.append(ChatMessage(
-            content: "Hi! I'm your AI calendar assistant. I can help you:\n• Add events to your calendar\n• Find the best times for activities\n• Manage your schedule\n\nJust tell me what you need!",
+            content: "Hey! I'm Ty, your AI calendar assistant. I can help you:\n• Add events to your calendar\n• Find the best times for activities\n• Manage your schedule\n\nJust tell me what you need!",
             isUser: false,
             timestamp: Date()
         ))
