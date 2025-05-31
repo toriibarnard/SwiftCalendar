@@ -11,6 +11,7 @@ struct CalendarView: View {
     @State private var selectedMonth = Date()
     @State private var selectedDate: Date?
     @State private var showingAddEvent = false
+    @State private var showingWeekView = false
     
     var body: some View {
         NavigationView {
@@ -30,6 +31,11 @@ struct CalendarView: View {
             .navigationTitle("Calendar")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Week") {
+                        showingWeekView = true
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showingAddEvent = true }) {
                         Image(systemName: "plus")
@@ -38,6 +44,9 @@ struct CalendarView: View {
             }
             .sheet(isPresented: $showingAddEvent) {
                 AddEventView(scheduleManager: scheduleManager, isPresented: $showingAddEvent)
+            }
+            .sheet(isPresented: $showingWeekView) {
+                WeekView(scheduleManager: scheduleManager)
             }
             .sheet(item: $selectedDate) { date in
                 DayDetailView(date: date, scheduleManager: scheduleManager)
@@ -187,10 +196,11 @@ struct DayCell: View {
                         Text(event.title)
                             .font(.system(size: 9))
                             .lineLimit(1)
+                        Spacer(minLength: 0)
                     }
-                    .padding(.horizontal, 4)
+                    .padding(.horizontal, 3)
                     .padding(.vertical, 1)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .background(categoryColor(event.category).opacity(0.8))
                     .foregroundColor(.white)
                     .cornerRadius(2)

@@ -2,14 +2,6 @@
 //  DayDetailView.swift
 //  SwiftCalendar
 //
-//  Created by Torii Barnard on 2025-05-31.
-//
-
-
-//
-//  DayDetailView.swift
-//  SwiftCalendar
-//
 //  Hour-by-hour view of a specific day
 //
 
@@ -23,6 +15,7 @@ struct DayDetailView: View {
     @State private var showingDeleteAlert = false
     
     let hours = Array(0...23) // 12 AM to 11 PM
+    let hourHeight: CGFloat = 60 // Height for each hour
     
     private var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -50,20 +43,30 @@ struct DayDetailView: View {
                         .fontWeight(.semibold)
                         .padding()
                     
-                    // Hour slots
-                    ForEach(hours, id: \.self) { hour in
-                        HourRow(
-                            hour: hour,
-                            date: date,
-                            events: eventsForHour(hour),
-                            onEventTap: { event in
-                                selectedEvent = event
-                                showingDeleteAlert = true
+                    // Time grid with events overlay
+                    ZStack(alignment: .topLeading) {
+                        // Hour grid lines
+                        VStack(spacing: 0) {
+                            ForEach(hours, id: \.self) { hour in
+                                HourRow(hour: hour, hourHeight: hourHeight)
+                                Divider()
+                                    .padding(.leading, 60)
                             }
-                        )
-                        Divider()
-                            .padding(.leading, 60)
+                        }
+                        
+                        // Events overlay
+                        ForEach(dayEvents) { event in
+                            EventOverlay(
+                                event: event,
+                                hourHeight: hourHeight,
+                                onTap: {
+                                    selectedEvent = event
+                                    showingDeleteAlert = true
+                                }
+                            )
+                        }
                     }
+                    .padding(.bottom, 20)
                 }
             }
             .navigationTitle("Day View")
@@ -89,19 +92,11 @@ struct DayDetailView: View {
             }
         }
     }
-    
-    private func eventsForHour(_ hour: Int) -> [ScheduleEvent] {
-        dayEvents.filter { event in
-            Calendar.current.component(.hour, from: event.startTime) == hour
-        }
-    }
 }
 
 struct HourRow: View {
     let hour: Int
-    let date: Date
-    let events: [ScheduleEvent]
-    let onEventTap: (ScheduleEvent) -> Void
+    let hourHeight: CGFloat
     
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
@@ -110,27 +105,13 @@ struct HourRow: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .frame(width: 50, alignment: .trailing)
-                .padding(.top, 4)
+                .padding(.top, -8)
             
-            // Events
-            VStack(alignment: .leading, spacing: 4) {
-                if events.isEmpty {
-                    Rectangle()
-                        .fill(Color.clear)
-                        .frame(height: 50)
-                } else {
-                    ForEach(events) { event in
-                        EventDetailBlock(event: event)
-                            .onTapGesture {
-                                onEventTap(event)
-                            }
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.trailing)
+            // Empty space for the hour
+            Rectangle()
+                .fill(Color.clear)
+                .frame(height: hourHeight)
         }
-        .frame(minHeight: 60)
     }
     
     private func formatHour(_ hour: Int) -> String {
@@ -141,8 +122,10 @@ struct HourRow: View {
     }
 }
 
-struct EventDetailBlock: View {
+struct EventOverlay: View {
     let event: ScheduleEvent
+    let hourHeight: CGFloat
+    let onTap: () -> Void
     
     private var timeFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -154,40 +137,51 @@ struct EventDetailBlock: View {
         event.startTime.addingTimeInterval(TimeInterval(event.duration * 60))
     }
     
+    private var topOffset: CGFloat {
+        let calendar = Calendar.current
+        let hour = calendar.component(.hour, from: event.startTime)
+        let minute = calendar.component(.minute, from: event.startTime)
+        return CGFloat(hour) * hourHeight + (CGFloat(minute) / 60.0 * hourHeight)
+    }
+    
+    private var eventHeight: CGFloat {
+        let durationInHours = CGFloat(event.duration) / 60.0
+        return durationInHours * hourHeight - 4 // Subtract padding
+    }
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 2) {
             HStack {
                 if event.isAIGenerated {
                     Text("🤖")
-                        .font(.caption)
+                        .font(.caption2)
                 }
                 Text(event.title)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: 13, weight: .medium))
                     .foregroundColor(.white)
+                    .lineLimit(2)
                 Spacer()
             }
             
             Text("\(event.startTime, formatter: timeFormatter) - \(endTime, formatter: timeFormatter)")
-                .font(.caption)
-                .foregroundColor(.white.opacity(0.8))
-            
-            if event.duration > 60 {
-                Text("\(event.duration / 60)h \(event.duration % 60)m")
-                    .font(.caption2)
-                    .foregroundColor(.white.opacity(0.7))
-            }
+                .font(.caption2)
+                .foregroundColor(.white.opacity(0.9))
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .frame(height: max(eventHeight, 30)) // Minimum height
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: 6)
                 .fill(categoryColor(event.category))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: 6)
                 .stroke(event.isAIGenerated ? Color.white : Color.clear, lineWidth: 1.5)
         )
+        .offset(x: 60, y: topOffset)
+        .padding(.trailing, 16)
+        .onTapGesture(perform: onTap)
     }
     
     func categoryColor(_ category: EventCategory) -> Color {

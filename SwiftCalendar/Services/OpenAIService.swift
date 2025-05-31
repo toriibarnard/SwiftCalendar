@@ -214,6 +214,10 @@ class OpenAIService {
         
         // Add system message if it's the first message
         if messages.count == 1 {
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+            dateFormatter.timeZone = TimeZone.current
+            
             messages.insert(ChatMessage(
                 role: "system",
                 content: """
@@ -225,12 +229,19 @@ class OpenAIService {
                 
                 Your personality is friendly, casual, and encouraging. You're like a supportive personal assistant who wants to help people stay organized and achieve their goals.
                 
+                IMPORTANT DATE/TIME HANDLING:
+                - Current date/time: \(dateFormatter.string(from: Date()))
+                - User's timezone: \(TimeZone.current.identifier)
+                - Always use dates in format: yyyy-MM-dd'T'HH:mm:ss (NO timezone suffix)
+                - When given times like "8:30am", convert to 24-hour format (08:30)
+                - For recurring events (like "work 9-5 on weekdays"), set is_recurring=true and recurrence_days=[1,2,3,4,5] for Mon-Fri
+                - Days are: 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday
+                - "Tomorrow" means exactly 1 day after today
+                - For time ranges like "8:30am-4:00pm", create start_date with 08:30 and end_date with 16:00
+                
                 When users mention regular commitments (like "I work 9-5 on weekdays"), create recurring events.
                 When users ask to remove/delete/cancel events, use the remove_event function.
-                When users ask for suggestions (like "when should I go to the gym"), analyze their schedule and suggest optimal times.
                 Always be conversational and helpful. Use the provided functions to manage the calendar.
-                
-                Current date and time: \(ISO8601DateFormatter().string(from: Date()))
                 """
             ), at: 0)
         }

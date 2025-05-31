@@ -100,14 +100,14 @@ class ChatViewModel: ObservableObject {
             case "add_event":
                 await handleAddEvent(arguments: arguments, scheduleManager: scheduleManager)
                 
+            case "remove_event":
+                await handleRemoveEvent(arguments: arguments, scheduleManager: scheduleManager)
+                
             case "suggest_time":
                 await handleSuggestTime(arguments: arguments, scheduleManager: scheduleManager)
                 
             case "get_schedule":
                 await handleGetSchedule(arguments: arguments, scheduleManager: scheduleManager)
-                
-            case "remove_event":
-                await handleRemoveEvent(arguments: arguments, scheduleManager: scheduleManager)
                 
             default:
                 print("❌ Unknown function: \(functionCall.name)")
@@ -132,14 +132,39 @@ class ChatViewModel: ObservableObject {
             return
         }
         
-        let formatter = ISO8601DateFormatter()
-        guard let startDate = formatter.date(from: startDateString),
-              let endDate = formatter.date(from: endDateString) else {
+        // Try multiple date formats
+        let iso8601Formatter = ISO8601DateFormatter()
+        let localFormatter = DateFormatter()
+        localFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        localFormatter.timeZone = TimeZone.current
+        
+        let utcFormatter = DateFormatter()
+        utcFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+        
+        // Try parsing with different formatters
+        var startDate = iso8601Formatter.date(from: startDateString)
+        var endDate = iso8601Formatter.date(from: endDateString)
+        
+        if startDate == nil {
+            startDate = localFormatter.date(from: startDateString)
+            endDate = localFormatter.date(from: endDateString)
+        }
+        
+        if startDate == nil {
+            startDate = utcFormatter.date(from: startDateString)
+            endDate = utcFormatter.date(from: endDateString)
+        }
+        
+        guard let validStartDate = startDate, let validEndDate = endDate else {
             print("❌ Failed to parse dates")
             print("   start: \(startDateString)")
             print("   end: \(endDateString)")
             return
         }
+        
+        print("📅 Parsed dates:")
+        print("   Start: \(validStartDate)")
+        print("   End: \(validEndDate)")
         
         let category = EventCategory(rawValue: categoryString) ?? .other
         let isRecurring = arguments["is_recurring"] as? Bool ?? false
@@ -147,8 +172,10 @@ class ChatViewModel: ObservableObject {
         
         print("✅ Creating event: \(title)")
         print("   Category: \(category)")
-        print("   Start: \(startDate)")
+        print("   Start: \(validStartDate)")
+        print("   End: \(validEndDate)")
         print("   Recurring: \(isRecurring)")
+        print("   Recurrence days: \(recurrenceDays)")
         
         if isRecurring && !recurrenceDays.isEmpty {
             // Create recurring events for the next 4 weeks
@@ -156,41 +183,51 @@ class ChatViewModel: ObservableObject {
             let endOfMonth = calendar.date(byAdding: .month, value: 1, to: Date()) ?? Date()
             
             var eventsCreated = 0
-            var currentDate = startDate
+            var currentDate = validStartDate
+            
+            // Get the hour and minute components from the original times
+            let startComponents = calendar.dateComponents([.hour, .minute], from: validStartDate)
+            let endComponents = calendar.dateComponents([.hour, .minute], from: validEndDate)
+            
             while currentDate <= endOfMonth {
                 let weekday = calendar.component(.weekday, from: currentDate) - 1 // Convert to 0-based
                 if recurrenceDays.contains(weekday) {
-                    let eventStart = calendar.date(bySettingHour: calendar.component(.hour, from: startDate),
-                                                   minute: calendar.component(.minute, from: startDate),
-                                                   second: 0,
-                                                   of: currentDate) ?? currentDate
-                    let eventEnd = calendar.date(bySettingHour: calendar.component(.hour, from: endDate),
-                                                 minute: calendar.component(.minute, from: endDate),
-                                                 second: 0,
-                                                 of: currentDate) ?? currentDate
+                    // Create events with the same time but different dates
+                    var eventStartComponents = calendar.dateComponents([.year, .month, .day], from: currentDate)
+                    eventStartComponents.hour = startComponents.hour
+                    eventStartComponents.minute = startComponents.minute
                     
-                    let duration = Int(eventEnd.timeIntervalSince(eventStart) / 60)
-                    scheduleManager.addAIEvent(
-                        at: eventStart,
-                        title: title,
-                        category: category,
-                        duration: duration
-                    )
-                    eventsCreated += 1
+                    var eventEndComponents = calendar.dateComponents([.year, .month, .day], from: currentDate)
+                    eventEndComponents.hour = endComponents.hour
+                    eventEndComponents.minute = endComponents.minute
+                    
+                    if let eventStart = calendar.date(from: eventStartComponents),
+                       let eventEnd = calendar.date(from: eventEndComponents) {
+                        let duration = Int(eventEnd.timeIntervalSince(eventStart) / 60)
+                        scheduleManager.addAIEvent(
+                            at: eventStart,
+                            title: title,
+                            category: category,
+                            duration: duration
+                        )
+                        eventsCreated += 1
+                        print("   Created event on \(eventStart)")
+                    }
                 }
                 currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
             }
             print("✅ Created \(eventsCreated) recurring events")
         } else {
             // Single event
-            let duration = Int(endDate.timeIntervalSince(startDate) / 60)
+            let duration = Int(validEndDate.timeIntervalSince(validStartDate) / 60)
             scheduleManager.addAIEvent(
-                at: startDate,
+                at: validStartDate,
                 title: title,
                 category: category,
                 duration: duration
             )
             print("✅ Created single event")
+            print("   Duration: \(duration) minutes")
         }
         
         print("📅 Total events in schedule: \(scheduleManager.events.count)")
