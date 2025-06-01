@@ -156,31 +156,31 @@ class OpenAIService {
                 )
             ),
             FunctionDefinition(
-                name: "suggest_time",
-                description: "Suggest optimal times for an activity",
+                name: "check_conflicts",
+                description: "Check if there are conflicts at a specific time",
                 parameters: FunctionDefinition.Parameters(
                     type: "object",
                     properties: [
-                        "activity": FunctionDefinition.Property(
+                        "date": FunctionDefinition.Property(
                             type: "string",
-                            description: "The activity to schedule",
+                            description: "The date to check in ISO format",
                             enum: nil,
                             items: nil
                         ),
-                        "duration_minutes": FunctionDefinition.Property(
-                            type: "integer",
-                            description: "Duration of the activity in minutes",
+                        "start_time": FunctionDefinition.Property(
+                            type: "string",
+                            description: "Start time to check",
                             enum: nil,
                             items: nil
                         ),
-                        "preferences": FunctionDefinition.Property(
-                            type: "object",
-                            description: "User preferences for scheduling",
+                        "end_time": FunctionDefinition.Property(
+                            type: "string",
+                            description: "End time to check",
                             enum: nil,
                             items: nil
                         )
                     ],
-                    required: ["activity", "duration_minutes"]
+                    required: ["date"]
                 )
             ),
             FunctionDefinition(
@@ -208,7 +208,7 @@ class OpenAIService {
         ]
     }
     
-    func sendMessage(_ message: String, conversationHistory: [ChatMessage]) async throws -> (String, FunctionCall?) {
+    func sendMessage(_ message: String, conversationHistory: [ChatMessage], existingEvents: [ScheduleEvent] = []) async throws -> (String, FunctionCall?) {
         var messages = conversationHistory
         messages.append(ChatMessage(role: "user", content: message))
         
@@ -218,38 +218,67 @@ class OpenAIService {
             dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
             dateFormatter.timeZone = TimeZone.current
             
+            let dayFormatter = DateFormatter()
+            dayFormatter.dateFormat = "EEEE, MMMM d, yyyy"
+            
+            let currentDateTime = dateFormatter.string(from: Date())
+            let todayString = dayFormatter.string(from: Date())
+            
+            // Create a string of existing events for context
+            let eventsList = existingEvents.prefix(10).map { event in
+                let eventDate = dayFormatter.string(from: event.startTime)
+                let timeFormatter = DateFormatter()
+                timeFormatter.dateFormat = "h:mm a"
+                let startTime = timeFormatter.string(from: event.startTime)
+                let endTime = timeFormatter.string(from: event.startTime.addingTimeInterval(TimeInterval(event.duration * 60)))
+                return "- \(event.title): \(eventDate) from \(startTime) to \(endTime)"
+            }.joined(separator: "\n")
+            
             messages.insert(ChatMessage(
                 role: "system",
                 content: """
-                You are Ty, a friendly and helpful AI calendar assistant for Swift Calendar app. You help users manage their schedule by:
-                1. Adding events to their calendar when they tell you about their commitments
-                2. Removing events when users ask you to delete or cancel them
-                3. Suggesting optimal times for activities based on their existing schedule
-                4. Understanding natural language requests about scheduling
+                You are Ty, a smart calendar assistant. Today is \(todayString).
+                Current exact time: \(currentDateTime)
                 
-                Your personality is friendly, casual, and encouraging. You're like a supportive personal assistant who wants to help people stay organized and achieve their goals.
+                EXISTING EVENTS ON CALENDAR:
+                \(eventsList.isEmpty ? "No events scheduled yet." : eventsList)
                 
-                IMPORTANT DATE/TIME HANDLING:
-                - Current date/time: \(dateFormatter.string(from: Date()))
-                - User's timezone: \(TimeZone.current.identifier)
-                - Always use dates in format: yyyy-MM-dd'T'HH:mm:ss (NO timezone suffix)
-                - When given times like "8:30am", convert to 24-hour format (08:30)
-                - For recurring events (like "work 9-5 on weekdays"), set is_recurring=true and recurrence_days=[1,2,3,4,5] for Mon-Fri
-                - Days are: 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday
-                - "Tomorrow" means exactly 1 day after today
-                - For time ranges like "8:30am-4:00pm", create start_date with 08:30 and end_date with 16:00
+                CRITICAL RULES:
+                1. TODAY IS \(todayString). Calculate all dates relative to this.
+                2. When user says "June 4th", calculate what day of week that is based on today's date
+                3. ALWAYS check for conflicts before adding events
+                4. If there's a conflict, mention it: "You have work scheduled at that time. Would you like me to remove it?"
+                5. For times like "noon", use 12:00. For "evening", suggest 6:00 PM
                 
-                When users mention regular commitments (like "I work 9-5 on weekdays"), create recurring events.
-                When users ask to remove/delete/cancel events, use the remove_event function.
-                Always be conversational and helpful. Use the provided functions to manage the calendar.
+                DATE HANDLING:
+                - Format all dates as: yyyy-MM-dd'T'HH:mm:ss (no timezone)
+                - "Tomorrow" = add 1 day to today
+                - "Next Monday" = find the next Monday from today
+                - Weekdays for recurring: Monday=1, Tuesday=2, Wednesday=3, Thursday=4, Friday=5
+                
+                CATEGORIES:
+                - work/meeting/office → "work"
+                - gym/exercise/workout → "fitness"
+                - doctor/dentist/medical → "health"
+                - study/homework/class → "study"
+                - party/dinner/social → "social"
+                - other → "personal"
+                
+                When adding events, be specific about what you're doing:
+                "I've added [event] on [full date with day of week] from [time] to [time]"
+                
+                For the function calls:
+                - Use check_conflicts first if adding to a day that might have events
+                - Then use remove_event if user wants to replace something
+                - Finally use add_event
                 """
             ), at: 0)
         }
         
         let request = ChatRequest(
-            model: "gpt-4-0125-preview",
+            model: "gpt-4-0125-preview",  // Latest GPT-4 model
             messages: messages,
-            temperature: 0.7,
+            temperature: 0.2, // Even lower for more consistency
             functions: calendarFunctions,
             function_call: "auto"
         )
