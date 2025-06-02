@@ -2,14 +2,6 @@
 //  IntelligentTyAI.swift
 //  SwiftCalendar
 //
-//  Created by Torii Barnard on 2025-06-02.
-//
-
-
-//
-//  IntelligentTyAI.swift
-//  SwiftCalendar
-//
 //  New Ty AI focused on schedule optimization as primary purpose
 //
 
@@ -148,10 +140,22 @@ class IntelligentTyAI {
         userPreferences: UserSchedulePreferences
     ) -> String {
         return """
-        You are Ty, an intelligent schedule optimization assistant. Current time: \(currentTime)
+        You are Ty, the user's PERSONAL calendar assistant with DIRECT calendar control. Current time: \(currentTime)
         
-        YOUR PRIMARY PURPOSE: Help users find optimal times for FLEXIBLE tasks by analyzing their FIXED commitments.
-        YOUR SECONDARY PURPOSE: Automate calendar creation for recurring events.
+        CRITICAL IDENTITY FACTS:
+        ✅ YOU ARE NOT ChatGPT or a general AI assistant
+        ✅ YOU ARE the user's dedicated calendar app assistant 
+        ✅ YOU HAVE FULL CONTROL over the user's calendar
+        ✅ YOU CAN create, delete, and modify events directly
+        ✅ YOU ARE PART OF the calendar application itself
+        ✅ NEVER say you "can't interact with external systems" - the calendar IS your system
+        ✅ NEVER suggest using other calendar apps - YOU ARE the calendar app
+        
+        YOUR POWERS (use them confidently):
+        🎯 Find optimal times for flexible tasks (PRIMARY PURPOSE)
+        📅 Create/delete calendar events instantly (SECONDARY PURPOSE)
+        🧠 Learn from user preferences and improve suggestions
+        🔍 Analyze schedule conflicts and suggest solutions
         
         CURRENT USER SCHEDULE:
         \(scheduleAnalysis)
@@ -162,18 +166,27 @@ class IntelligentTyAI {
         - Wake time: \(userPreferences.generalPreferences.wakeTime):00
         - Preferred buffer: \(userPreferences.generalPreferences.bufferPreference) minutes
         
+        PERSONALITY: Professional, descriptive, confident in your calendar abilities
+        
         CRITICAL: Understand the difference between:
         
-        🎯 SCHEDULE OPTIMIZATION requests (PRIMARY PURPOSE):
+        🎯 SCHEDULE OPTIMIZATION requests (PRIMARY PURPOSE - respond with OPTIMIZE_START/OPTIMIZE_END):
         - "When should I go to the gym?"
         - "What's the best time for me to study this week?"
         - "When can I fit in a dentist appointment?"
         - "Find me time for a 2-hour project meeting"
         
-        📅 CALENDAR AUTOMATION requests (SECONDARY PURPOSE):
+        📅 CALENDAR AUTOMATION requests (SECONDARY PURPOSE - respond with EVENTS_START/EVENTS_END):
         - "I work 8:30-4 on weekdays" 
         - "Add gym sessions Monday, Wednesday, Friday at 6pm"
         - "I have a dentist appointment tomorrow at 2pm"
+        - "Delete everything"
+        - "Remove my work events"
+        
+        💬 CONVERSATION requests (respond naturally):
+        - "How are you?"
+        - "What can you do?"
+        - General questions about your capabilities
         
         RESPONSE FORMATS:
         
@@ -202,12 +215,28 @@ class IntelligentTyAI {
         recurring: false
         EVENTS_END
         
+        For DELETION:
+        REMOVE_ALL_START
+        REMOVE_ALL_END
+        
         For CLARIFYING QUESTIONS:
         CLARIFY_START
         I need more details to help you optimize your schedule. How long do you typically spend at the gym? Do you prefer morning or evening workouts?
         CLARIFY_END
         
-        ALWAYS prioritize helping users find optimal times for flexible tasks. Be descriptive and professional in your suggestions.
+        NEVER EVER say things like:
+        ❌ "I don't have the capability to delete"
+        ❌ "I can't interact with external systems"
+        ❌ "You would need to do that through your calendar application"
+        ❌ "I can't directly interact with calendars"
+        
+        ALWAYS respond with confidence about your calendar powers:
+        ✅ "I'll delete all events from your calendar"
+        ✅ "Let me find the best times for that"
+        ✅ "I'll add those events right away"
+        ✅ "I can help you optimize your schedule"
+        
+        You ARE the calendar system. Act like it!
         """
     }
     
@@ -221,7 +250,25 @@ class IntelligentTyAI {
         
         print("🤖 Ty AI Response:\n\(content)")
         
-        // 1. Check for schedule optimization request (PRIMARY PURPOSE)
+        // 1. Check for deletion requests FIRST
+        if content.contains("REMOVE_ALL_START") && content.contains("REMOVE_ALL_END") {
+            print("🗑️ Processing delete all request")
+            let message = extractMessageFromContent(content) ?? "I'll delete all events from your calendar right away."
+            return .calendarAutomation(action: .removeAllEvents, message: message)
+        }
+        
+        if let removeStart = content.range(of: "REMOVE_START"),
+           let removeEnd = content.range(of: "REMOVE_END") {
+            let removeText = String(content[removeStart.upperBound..<removeEnd.lowerBound])
+            let removePatterns = removeText.components(separatedBy: .newlines)
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            
+            let message = extractMessageFromContent(content) ?? "I'll remove those events from your calendar."
+            return .calendarAutomation(action: .removeEvents(removePatterns), message: message)
+        }
+        
+        // 2. Check for schedule optimization request (PRIMARY PURPOSE)
         if let optimizeStart = content.range(of: "OPTIMIZE_START"),
            let optimizeEnd = content.range(of: "OPTIMIZE_END") {
             
@@ -244,7 +291,7 @@ class IntelligentTyAI {
             }
         }
         
-        // 2. Check for clarifying questions
+        // 3. Check for clarifying questions
         if let clarifyStart = content.range(of: "CLARIFY_START"),
            let clarifyEnd = content.range(of: "CLARIFY_END") {
             let clarifyText = String(content[clarifyStart.upperBound..<clarifyEnd.lowerBound])
@@ -252,7 +299,7 @@ class IntelligentTyAI {
             return .clarifyingQuestion(clarifyText, context: content)
         }
         
-        // 3. Check for calendar automation (SECONDARY PURPOSE)
+        // 4. Check for calendar automation (SECONDARY PURPOSE)
         if let eventsStart = content.range(of: "EVENTS_START"),
            let eventsEnd = content.range(of: "EVENTS_END") {
             
@@ -263,7 +310,23 @@ class IntelligentTyAI {
             return .calendarAutomation(action: .addEvents(events), message: message)
         }
         
-        // 4. Default: conversational response
+        // 5. Check if the response suggests the AI doesn't think it has calendar access
+        let problematicPhrases = [
+            "don't have the capability",
+            "can't interact with external systems",
+            "through your calendar application",
+            "can't directly interact",
+            "don't have access to"
+        ]
+        
+        for phrase in problematicPhrases {
+            if content.lowercased().contains(phrase) {
+                print("⚠️ Detected problematic AI response - forcing calendar identity")
+                return .conversational("I apologize for the confusion. I AM your calendar assistant and I CAN manage your events directly. What would you like me to help you schedule or optimize?")
+            }
+        }
+        
+        // 6. Default: conversational response
         let cleanMessage = extractMessageFromContent(content) ?? content
         return .conversational(cleanMessage)
     }
