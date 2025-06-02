@@ -289,6 +289,9 @@ class DirectGPT4Calendar {
     }
     
     private func parseResponse(_ content: String) -> (CalendarAction, String) {
+        print("🤖 AI Response content:\n\(content)")
+        print("🤖 ================================")
+        
         // Default message is the content with special blocks removed manually
         var userMessage = content
         
@@ -297,6 +300,7 @@ class DirectGPT4Calendar {
         // 1. Check for confirmation requests
         if let confirmStart = content.range(of: "CONFIRM_START"),
            let confirmEnd = content.range(of: "CONFIRM_END") {
+            print("✅ Found confirmation request")
             let confirmText = String(content[confirmStart.upperBound..<confirmEnd.lowerBound])
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             return (.requestConfirmation(confirmText, pendingAction: .removeAllEvents), confirmText)
@@ -304,6 +308,7 @@ class DirectGPT4Calendar {
         
         // 2. Check for remove all events
         if content.contains("REMOVE_ALL_START") && content.contains("REMOVE_ALL_END") {
+            print("✅ Found remove all events request")
             let message = extractMessageFromContent(content) ?? "All events have been removed from your calendar."
             return (.removeAllEvents, message)
         }
@@ -311,11 +316,13 @@ class DirectGPT4Calendar {
         // 3. Check for specific event removal
         if let removeStart = content.range(of: "REMOVE_START"),
            let removeEnd = content.range(of: "REMOVE_END") {
+            print("✅ Found remove events request")
             let removeText = String(content[removeStart.upperBound..<removeEnd.lowerBound])
             let removePatterns = removeText.components(separatedBy: .newlines)
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty }
             
+            print("🗑️ Remove patterns: \(removePatterns)")
             let message = extractMessageFromContent(content) ?? "I'll remove those events."
             return (.removeEvents(removePatterns), message)
         }
@@ -323,14 +330,18 @@ class DirectGPT4Calendar {
         // 4. Check for add events
         if let eventsStart = content.range(of: "EVENTS_START"),
            let eventsEnd = content.range(of: "EVENTS_END") {
+            print("✅ Found add events request")
             let eventsText = String(content[eventsStart.upperBound..<eventsEnd.lowerBound])
+            print("📝 Events text to parse:\n\(eventsText)")
             let events = parseEvents(from: eventsText)
+            print("📅 Parsed \(events.count) events: \(events.map { $0.title })")
             
             let message = extractMessageFromContent(content) ?? "I'll add those events."
             return (.addEvents(events), message)
         }
         
         // 5. Default - just show the message
+        print("💬 No special action found, showing message")
         let cleanMessage = extractMessageFromContent(content) ?? content.trimmingCharacters(in: .whitespacesAndNewlines)
         return (.showMessage(cleanMessage), cleanMessage)
     }
@@ -381,10 +392,29 @@ class DirectGPT4Calendar {
     }
     
     private func parseEvents(from text: String) -> [SimpleEvent] {
+        print("🔍 Parsing events from text:\n\(text)")
         var events: [SimpleEvent] = []
-        let eventBlocks = text.components(separatedBy: "---")
         
-        for block in eventBlocks {
+        // First try to split by "---", but if that fails, try to detect multiple events by title repetition
+        var eventBlocks = text.components(separatedBy: "---")
+        
+        // If we only have one block but it contains multiple "title:" entries, split differently
+        if eventBlocks.count == 1 && text.components(separatedBy: "title:").count > 2 {
+            print("🔧 Detected multiple events without separators, attempting smart split")
+            // Split by "title:" and rejoin each with "title:"
+            let parts = text.components(separatedBy: "title:")
+            eventBlocks = []
+            for (index, part) in parts.enumerated() {
+                if index == 0 && part.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    continue // Skip empty first part
+                }
+                eventBlocks.append("title:" + part)
+            }
+        }
+        
+        for (blockIndex, block) in eventBlocks.enumerated() {
+            print("📋 Processing event block \(blockIndex + 1):\n\(block)")
+            
             var title = ""
             var dateStr = ""
             var duration = 60
@@ -400,20 +430,27 @@ class DirectGPT4Calendar {
                 switch parts[0] {
                 case "title":
                     title = parts[1]
+                    print("  📝 Title: \(title)")
                 case "date":
                     dateStr = parts[1]
+                    print("  📅 Date string: \(dateStr)")
                 case "duration":
                     duration = Int(parts[1]) ?? 60
+                    print("  ⏱️ Duration: \(duration)")
                 case "category":
                     category = parts[1]
+                    print("  🏷️ Category: \(category)")
                 case "recurring":
                     recurring = parts[1] == "true"
+                    print("  🔄 Recurring: \(recurring)")
                 case "days":
                     let dayNames = parts[1].split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
                     let dayMap = ["sunday": 0, "monday": 1, "tuesday": 2, "wednesday": 3,
                                   "thursday": 4, "friday": 5, "saturday": 6]
                     days = dayNames.compactMap { dayMap[$0] }
+                    print("  📆 Days: \(days)")
                 default:
+                    print("  ❓ Unknown field: \(parts[0]) = \(parts[1])")
                     break
                 }
             }
@@ -423,17 +460,31 @@ class DirectGPT4Calendar {
             formatter.dateFormat = "yyyy-MM-dd HH:mm"
             
             if !title.isEmpty, let date = formatter.date(from: dateStr) {
-                events.append(SimpleEvent(
+                let event = SimpleEvent(
                     title: title,
                     date: date,
                     duration: duration,
                     category: category,
                     isRecurring: recurring,
                     recurrenceDays: days
-                ))
+                )
+                events.append(event)
+                print("✅ Successfully created event: \(title) at \(date)")
+            } else {
+                print("❌ Failed to parse event - title: '\(title)', dateStr: '\(dateStr)'")
+                if title.isEmpty {
+                    print("   - Missing title")
+                }
+                if let testDate = formatter.date(from: dateStr) {
+                    print("   - Date parsed successfully: \(testDate)")
+                } else {
+                    print("   - Date parsing failed for: '\(dateStr)'")
+                    print("   - Expected format: yyyy-MM-dd HH:mm")
+                }
             }
         }
         
+        print("🎯 Final result: \(events.count) events parsed successfully")
         return events
     }
     

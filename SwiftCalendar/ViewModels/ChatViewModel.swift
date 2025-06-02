@@ -94,6 +94,8 @@ class ChatViewModel: ObservableObject {
     }
     
     private func handleCalendarAction(_ action: DirectGPT4Calendar.CalendarAction, message: String, scheduleManager: ScheduleManager) async {
+        print("🔄 Handling calendar action: \(action)")
+        
         switch action {
         case .requestConfirmation(let confirmText, let pendingAction):
             // Store pending action and show confirmation dialog
@@ -131,16 +133,23 @@ class ChatViewModel: ObservableObject {
     }
     
     private func executeAction(_ action: DirectGPT4Calendar.CalendarAction, scheduleManager: ScheduleManager) async {
+        print("🚀 Executing action: \(action)")
+        
         switch action {
         case .addEvents(let events):
+            print("📅 Adding \(events.count) events")
             // Add events to calendar
-            for event in events {
+            for (index, event) in events.enumerated() {
+                print("📅 Event \(index + 1): \(event.title) at \(event.date) for \(event.duration) minutes")
+                
                 if event.isRecurring && !event.recurrenceDays.isEmpty {
+                    print("🔄 Creating recurring events for days: \(event.recurrenceDays)")
                     // Create recurring events
                     await createRecurringEvents(event, scheduleManager: scheduleManager)
                 } else {
                     // Single event
                     let category = EventCategory(rawValue: event.category) ?? .personal
+                    print("➕ Adding single event: \(event.title) - \(category)")
                     scheduleManager.addAIEvent(
                         at: event.date,
                         title: event.title,
@@ -151,6 +160,7 @@ class ChatViewModel: ObservableObject {
             }
             
         case .removeEvents(let patterns):
+            print("🗑️ Removing events matching patterns: \(patterns)")
             // Find and remove matching events
             let eventsToRemove = gpt4.findEventsToRemove(patterns, from: scheduleManager.events)
             
@@ -170,6 +180,7 @@ class ChatViewModel: ObservableObject {
             }
             
         case .removeAllEvents:
+            print("🗑️ Removing all events")
             // Remove all events
             let allEvents = scheduleManager.events
             for event in allEvents {
@@ -179,10 +190,12 @@ class ChatViewModel: ObservableObject {
             print("🗑️ Deleted all \(allEvents.count) events")
             
         case .requestConfirmation(_, _):
+            print("❓ Request confirmation - already handled")
             // Already handled in handleCalendarAction
             break
             
-        case .showMessage(_):
+        case .showMessage(let msg):
+            print("💬 Show message: \(msg)")
             // Just show the message, no action needed
             break
         }
