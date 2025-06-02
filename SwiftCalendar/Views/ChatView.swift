@@ -2,7 +2,7 @@
 //  ChatView.swift
 //  SwiftCalendar
 //
-//  AI Chat interface for calendar management
+//  Updated with confirmation dialogs and memory
 //
 
 import SwiftUI
@@ -78,6 +78,12 @@ struct ChatView: View {
             .navigationTitle("Ty")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Clear") {
+                        viewModel.clearConversation()
+                    }
+                    .font(.caption)
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Calendar") {
                         // Dismiss to go back to calendar
@@ -86,6 +92,16 @@ struct ChatView: View {
             }
             .onAppear {
                 viewModel.scheduleManager = scheduleManager
+            }
+            .alert("Confirmation Required", isPresented: $viewModel.showingConfirmation) {
+                Button("Yes", role: .destructive) {
+                    viewModel.confirmAction()
+                }
+                Button("No", role: .cancel) {
+                    viewModel.cancelAction()
+                }
+            } message: {
+                Text(viewModel.confirmationMessage)
             }
         }
     }

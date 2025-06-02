@@ -2,7 +2,7 @@
 //  DirectGPT4Calendar.swift
 //  SwiftCalendar
 //
-//  Smart calendar AI with conflict detection and better scheduling
+//  Conversational AI with memory - maintains chat history
 //
 
 import Foundation
@@ -11,6 +11,9 @@ class DirectGPT4Calendar {
     
     private let apiKey: String
     private let apiURL = "https://api.openai.com/v1/chat/completions"
+    
+    // Conversation history storage
+    private var conversationHistory: [[String: String]] = []
     
     init() {
         // Load API key from Config.plist
@@ -31,13 +34,19 @@ class DirectGPT4Calendar {
         let recurrenceDays: [Int]
     }
     
-    enum CalendarAction {
+    indirect enum CalendarAction {
         case addEvents([SimpleEvent])
-        case removeEvents([String]) // Array of event titles/patterns to remove
+        case removeEvents([String])
+        case removeAllEvents // New: handle "delete everything"
+        case requestConfirmation(String, pendingAction: CalendarAction) // New: for confirmations
         case showMessage(String)
     }
     
     func processRequest(_ input: String, existingEvents: [ScheduleEvent]) async throws -> (action: CalendarAction, message: String) {
+        
+        // Add user message to conversation history
+        conversationHistory.append(["role": "user", "content": input])
+        
         let today = Date()
         let formatter = DateFormatter()
         formatter.dateFormat = "EEEE, MMMM d, yyyy 'at' h:mm a"
@@ -46,59 +55,71 @@ class DirectGPT4Calendar {
         // Create detailed schedule analysis
         let scheduleAnalysis = analyzeSchedule(existingEvents, relativeTo: today)
         
-        let systemPrompt = """
-        You are Ty, a smart calendar assistant. Current date/time: \(todayString)
+        // Build the system message only for the first message
+        var messages: [[String: String]] = []
         
-        CURRENT SCHEDULE ANALYSIS:
-        \(scheduleAnalysis.detailedSchedule)
+        if conversationHistory.count == 1 { // First message
+            let systemPrompt = """
+            You are Ty, a smart calendar assistant. Current date/time: \(todayString)
+            
+            CURRENT SCHEDULE ANALYSIS:
+            \(scheduleAnalysis.detailedSchedule)
+            
+            AVAILABLE TIME SLOTS (conflict-free):
+            \(scheduleAnalysis.availableSlots)
+            
+            WORK PATTERN DETECTED:
+            \(scheduleAnalysis.workPattern)
+            
+            CONVERSATION RULES:
+            1. REMEMBER the entire conversation context
+            2. When user says "yes" or "no", refer to what they're responding to
+            3. For destructive actions like "delete everything", ask for confirmation first
+            4. NEVER say you don't have context - you have the full conversation above
+            
+            CALENDAR OPERATION RULES:
+            1. NEVER schedule events that conflict with existing events
+            2. When finding "best times", ONLY use the available time slots listed above
+            3. For deletion, be specific about time of day (morning/afternoon/evening)
+            
+            RESPONSE FORMATS:
+            
+            For CONFIRMATION requests:
+            CONFIRM_START
+            Are you sure you want to delete all events? This includes all work shifts and appointments.
+            CONFIRM_END
+            
+            For DELETION of everything:
+            REMOVE_ALL_START
+            REMOVE_ALL_END
+            
+            For DELETION of specific events:
+            REMOVE_START
+            work friday evening
+            REMOVE_END
+            
+            For SCHEDULING:
+            EVENTS_START
+            title: Gym
+            date: 2024-06-04 17:30
+            duration: 60
+            category: fitness
+            recurring: false
+            EVENTS_END
+            
+            Categories: work, fitness, health, study, social, personal, other
+            """
+            
+            messages.append(["role": "system", "content": systemPrompt])
+        }
         
-        AVAILABLE TIME SLOTS (conflict-free):
-        \(scheduleAnalysis.availableSlots)
-        
-        WORK PATTERN DETECTED:
-        \(scheduleAnalysis.workPattern)
-        
-        CRITICAL RULES:
-        1. NEVER schedule events that conflict with existing events
-        2. When finding "best times", ONLY use the available time slots listed above
-        3. For deletion, be specific about time of day (morning/afternoon/evening)
-        4. Analyze the user's work pattern and preferences
-        
-        For DELETION requests, return:
-        REMOVE_START
-        [specific event description]
-        REMOVE_END
-        
-        For SCHEDULING requests, return:
-        EVENTS_START
-        title: Gym
-        date: 2024-06-04 17:30
-        duration: 60
-        category: fitness
-        recurring: false
-        EVENTS_END
-        
-        EXAMPLES:
-        - "delete Friday evening shift" → REMOVE "work friday evening" (5:30-10:30pm shift)
-        - "cancel my morning work" → REMOVE "work morning" (8:30-4pm shift)
-        - "gym 4x this week" → find 4 available slots, avoid all conflicts
-        
-        SMART SCHEDULING PRIORITIES:
-        1. Respect existing commitments (work, appointments)
-        2. Use afternoon/evening slots for gym (user preference)
-        3. Spread sessions across different days
-        4. Consider optimal rest days between workouts
-        
-        Categories: work, fitness, health, study, social, personal, other
-        """
+        // Add all conversation history
+        messages.append(contentsOf: conversationHistory)
         
         let request = [
             "model": "gpt-4-0125-preview",
-            "messages": [
-                ["role": "system", "content": systemPrompt],
-                ["role": "user", "content": input]
-            ],
-            "temperature": 0.1, // Lower for more consistent scheduling
+            "messages": messages,
+            "temperature": 0.1,
             "max_tokens": 1500
         ] as [String : Any]
         
@@ -117,9 +138,17 @@ class DirectGPT4Calendar {
             throw NSError(domain: "Parse", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
         }
         
+        // Add AI response to conversation history
+        conversationHistory.append(["role": "assistant", "content": content])
+        
         // Parse the response
         let (action, userMessage) = parseResponse(content)
         return (action, userMessage)
+    }
+    
+    // Clear conversation history (useful for new sessions)
+    func clearConversationHistory() {
+        conversationHistory.removeAll()
     }
     
     private func analyzeSchedule(_ events: [ScheduleEvent], relativeTo today: Date) -> ScheduleAnalysis {
@@ -262,13 +291,38 @@ class DirectGPT4Calendar {
     private func parseResponse(_ content: String) -> (CalendarAction, String) {
         var userMessage = ""
         
-        // Extract message
-        if let messageStart = content.range(of: "MESSAGE_START"),
-           let messageEnd = content.range(of: "MESSAGE_END") {
-            let messageText = String(content[messageStart.upperBound..<messageEnd.lowerBound])
-            userMessage = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
-        } else {
-            userMessage = content
+        // Extract message (everything that's not in special blocks)
+        var cleanContent = content
+        
+        // Remove all special blocks to get the user message
+        let blockPatterns = [
+            ("CONFIRM_START", "CONFIRM_END"),
+            ("REMOVE_ALL_START", "REMOVE_ALL_END"),
+            ("REMOVE_START", "REMOVE_END"),
+            ("EVENTS_START", "EVENTS_END"),
+            ("MESSAGE_START", "MESSAGE_END")
+        ]
+        
+        for (startPattern, endPattern) in blockPatterns {
+            if let startRange = cleanContent.range(of: startPattern),
+               let endRange = cleanContent.range(of: endPattern) {
+                cleanContent.removeSubrange(startRange.lowerBound...endRange.upperBound)
+            }
+        }
+        
+        userMessage = cleanContent.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Check for confirmation requests
+        if let confirmStart = content.range(of: "CONFIRM_START"),
+           let confirmEnd = content.range(of: "CONFIRM_END") {
+            let confirmText = String(content[confirmStart.upperBound..<confirmEnd.lowerBound])
+            return (.requestConfirmation(confirmText.trimmingCharacters(in: .whitespacesAndNewlines),
+                                       pendingAction: .removeAllEvents), confirmText)
+        }
+        
+        // Check for remove all
+        if content.contains("REMOVE_ALL_START") && content.contains("REMOVE_ALL_END") {
+            return (.removeAllEvents, userMessage.isEmpty ? "I'll remove all events from your calendar." : userMessage)
         }
         
         // Check for removal requests
@@ -279,7 +333,7 @@ class DirectGPT4Calendar {
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty }
             
-            return (.removeEvents(removePatterns), userMessage)
+            return (.removeEvents(removePatterns), userMessage.isEmpty ? "I'll remove those events." : userMessage)
         }
         
         // Check for add events
@@ -288,7 +342,7 @@ class DirectGPT4Calendar {
             let eventsText = String(content[eventsStart.upperBound..<eventsEnd.lowerBound])
             let events = parseEvents(from: eventsText)
             
-            return (.addEvents(events), userMessage)
+            return (.addEvents(events), userMessage.isEmpty ? "I'll add those events." : userMessage)
         }
         
         // Default to showing message
