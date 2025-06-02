@@ -2,15 +2,42 @@
 //  ScheduleManager.swift
 //  SwiftCalendar
 //
-//  Created by Torii Barnard on 2025-05-24.
+//  Updated to use Firebase for persistence
 //
 
 import Foundation
 import SwiftUI
+import FirebaseAuth
+import Combine
 
 class ScheduleManager: ObservableObject {
     @Published var events: [ScheduleEvent] = []
     @Published var isProcessing = false
+    @Published var errorMessage = ""
+    
+    private let firebaseService = FirebaseEventService()
+    private var cancellables = Set<AnyCancellable>()
+    
+    init() {
+        // Listen to Firebase events and convert to ScheduleEvents
+        firebaseService.$events
+            .receive(on: DispatchQueue.main)
+            .map { $0.map(self.toScheduleEvent) }
+            .assign(to: \.events, on: self)
+            .store(in: &cancellables)
+        
+        firebaseService.$isLoading
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.isProcessing, on: self)
+            .store(in: &cancellables)
+        
+        firebaseService.$errorMessage
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.errorMessage, on: self)
+            .store(in: &cancellables)
+    }
+    
+    // MARK: - Event Queries
     
     func getEvent(for day: Date, hour: Int) -> ScheduleEvent? {
         let dayStart = Calendar.current.startOfDay(for: day)
@@ -19,53 +46,6 @@ class ScheduleManager: ObservableObject {
             let eventHour = Calendar.current.component(.hour, from: event.startTime)
             return eventDay == dayStart && eventHour == hour
         }
-    }
-    
-    func addEvent(at timeSlot: Date, title: String, category: EventCategory, duration: Int) {
-        let newEvent = ScheduleEvent(
-            title: title,
-            startTime: timeSlot,
-            duration: duration,
-            category: category,
-            isFixed: true,
-            isAIGenerated: false
-        )
-        events.append(newEvent)
-    }
-    
-    func addAIEvent(at timeSlot: Date, title: String, category: EventCategory, duration: Int) {
-        let newEvent = ScheduleEvent(
-            title: title,
-            startTime: timeSlot,
-            duration: duration,
-            category: category,
-            isFixed: true,
-            isAIGenerated: true
-        )
-        events.append(newEvent)
-    }
-    
-    func deleteEvent(_ event: ScheduleEvent) {
-        events.removeAll { $0.id == event.id }
-    }
-    
-    func updateEvent(_ event: ScheduleEvent, title: String, category: EventCategory, duration: Int) {
-        if let index = events.firstIndex(where: { $0.id == event.id }) {
-            events[index].title = title
-            events[index].category = category
-            events[index].duration = duration
-        }
-    }
-    
-    func moveEvent(_ event: ScheduleEvent, to day: Date, hour: Int) {
-        if let index = events.firstIndex(where: { $0.id == event.id }) {
-            let newTime = Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: day) ?? day
-            events[index].startTime = newTime
-        }
-    }
-    
-    func clearSchedule() {
-        events.removeAll()
     }
     
     func getEventsForDateRange(startDate: Date, endDate: Date) -> [ScheduleEvent] {
@@ -93,8 +73,8 @@ class ScheduleManager: ObservableObject {
         while currentTime < dateRange.end {
             let hour = calendar.component(.hour, from: currentTime)
             
-            // Skip hours outside working hours (5 AM to 11 PM)
-            if hour >= 5 && hour <= 23 {
+            // Skip hours outside reasonable hours (6 AM to 11 PM)
+            if hour >= 6 && hour <= 23 {
                 if !hasConflict(at: currentTime, duration: duration) {
                     availableSlots.append(currentTime)
                 }
@@ -118,5 +98,153 @@ class ScheduleManager: ObservableObject {
         }
         
         return availableSlots
+    }
+    
+    // MARK: - Event Management
+    
+    func addEvent(at timeSlot: Date, title: String, category: EventCategory, duration: Int) {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+        
+        let endDate = timeSlot.addingTimeInterval(TimeInterval(duration * 60))
+        let calendarEvent = CalendarEvent(
+            userId: userId,
+            title: title,
+            startDate: timeSlot,
+            endDate: endDate,
+            isFixed: true,
+            category: category
+        )
+        
+        Task {
+            do {
+                try await firebaseService.addEvent(calendarEvent)
+            } catch {
+                await MainActor.run {
+                    self.errorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+    
+    func addAIEvent(at timeSlot: Date, title: String, category: EventCategory, duration: Int) {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+        
+        let endDate = timeSlot.addingTimeInterval(TimeInterval(duration * 60))
+        var calendarEvent = CalendarEvent(
+            userId: userId,
+            title: title,
+            startDate: timeSlot,
+            endDate: endDate,
+            isFixed: true,
+            category: category
+        )
+        
+        // Add description to mark as AI-generated
+        calendarEvent.description = "AI-generated event"
+        
+        Task {
+            do {
+                try await firebaseService.addEvent(calendarEvent)
+            } catch {
+                await MainActor.run {
+                    self.errorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+    
+    func deleteEvent(_ event: ScheduleEvent) {
+        // Find the corresponding CalendarEvent
+        if let calendarEvent = firebaseService.events.first(where: {
+            $0.title == event.title &&
+            $0.startDate == event.startTime
+        }) {
+            Task {
+                do {
+                    try await firebaseService.deleteEvent(calendarEvent)
+                } catch {
+                    await MainActor.run {
+                        self.errorMessage = error.localizedDescription
+                    }
+                }
+            }
+        }
+    }
+    
+    func updateEvent(_ event: ScheduleEvent, title: String, category: EventCategory, duration: Int) {
+        // Find the corresponding CalendarEvent
+        if var calendarEvent = firebaseService.events.first(where: {
+            $0.title == event.title &&
+            $0.startDate == event.startTime
+        }) {
+            calendarEvent.title = title
+            calendarEvent.category = category
+            calendarEvent.endDate = event.startTime.addingTimeInterval(TimeInterval(duration * 60))
+            
+            Task {
+                do {
+                    try await firebaseService.updateEvent(calendarEvent)
+                } catch {
+                    await MainActor.run {
+                        self.errorMessage = error.localizedDescription
+                    }
+                }
+            }
+        }
+    }
+    
+    func moveEvent(_ event: ScheduleEvent, to day: Date, hour: Int) {
+        // Find the corresponding CalendarEvent
+        if var calendarEvent = firebaseService.events.first(where: {
+            $0.title == event.title &&
+            $0.startDate == event.startTime
+        }) {
+            let newTime = Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: day) ?? day
+            let duration = calendarEvent.endDate.timeIntervalSince(calendarEvent.startDate)
+            
+            calendarEvent.startDate = newTime
+            calendarEvent.endDate = newTime.addingTimeInterval(duration)
+            
+            Task {
+                do {
+                    try await firebaseService.updateEvent(calendarEvent)
+                } catch {
+                    await MainActor.run {
+                        self.errorMessage = error.localizedDescription
+                    }
+                }
+            }
+        }
+    }
+    
+    func clearSchedule() {
+        Task {
+            for calendarEvent in firebaseService.events {
+                do {
+                    try await firebaseService.deleteEvent(calendarEvent)
+                } catch {
+                    await MainActor.run {
+                        self.errorMessage = error.localizedDescription
+                    }
+                    break
+                }
+            }
+        }
+    }
+    
+    // MARK: - Conversion Helper
+    
+    private func toScheduleEvent(_ calendarEvent: CalendarEvent) -> ScheduleEvent {
+        let duration = Int(calendarEvent.endDate.timeIntervalSince(calendarEvent.startDate) / 60)
+        let isAIGenerated = calendarEvent.description?.contains("AI-generated") == true
+        
+        return ScheduleEvent(
+            title: calendarEvent.title,
+            startTime: calendarEvent.startDate,
+            duration: duration,
+            category: calendarEvent.category,
+            isFixed: calendarEvent.isFixed,
+            isAIGenerated: isAIGenerated
+        )
     }
 }

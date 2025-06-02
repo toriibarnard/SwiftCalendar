@@ -11,6 +11,7 @@ struct ContentView: View {
     @EnvironmentObject var authViewModel: AuthenticationViewModel
     @StateObject private var scheduleManager = ScheduleManager()
     @State private var selectedTab = 0
+    @State private var showingError = false
     
     var body: some View {
         Group {
@@ -34,6 +35,23 @@ struct ContentView: View {
                             Label("Profile", systemImage: "person.fill")
                         }
                         .tag(2)
+                }
+                .onAppear {
+                    // Run migration once when app loads
+                    Task {
+                        let migration = MigrationHelper()
+                        await migration.removeWorkingHoursFromUsers()
+                    }
+                }
+                .onChange(of: scheduleManager.errorMessage) { errorMessage in
+                    showingError = !errorMessage.isEmpty
+                }
+                .alert("Error", isPresented: $showingError) {
+                    Button("OK") {
+                        scheduleManager.errorMessage = ""
+                    }
+                } message: {
+                    Text(scheduleManager.errorMessage)
                 }
             } else {
                 // Show authentication view when not logged in
@@ -72,13 +90,15 @@ struct ProfileView: View {
                 
                 VStack(spacing: 16) {
                     HStack {
-                        Image(systemName: "clock")
+                        Image(systemName: "globe")
                             .foregroundColor(.blue)
                             .frame(width: 30)
-                        Text("Working Hours")
+                        Text("Time Zone")
                         Spacer()
-                        Text("9:00 AM - 5:00 PM")
-                            .foregroundColor(.secondary)
+                        if let user = authViewModel.currentUser {
+                            Text(user.preferences.timeZone)
+                                .foregroundColor(.secondary)
+                        }
                     }
                     
                     HStack {
@@ -87,8 +107,11 @@ struct ProfileView: View {
                             .frame(width: 30)
                         Text("Notifications")
                         Spacer()
-                        Toggle("", isOn: .constant(true))
-                            .labelsHidden()
+                        if let user = authViewModel.currentUser {
+                            Toggle("", isOn: .constant(user.preferences.notificationsEnabled))
+                                .labelsHidden()
+                                .disabled(true) // Make read-only for now
+                        }
                     }
                 }
                 .padding(.horizontal)

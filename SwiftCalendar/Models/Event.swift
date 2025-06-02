@@ -2,9 +2,8 @@
 //  Event.swift
 //  SwiftCalendar
 //
-//  Created by Torii Barnard on 2025-05-24.
+//  Updated CalendarEvent without FirebaseFirestoreSwift dependency
 //
-
 
 import Foundation
 
@@ -56,6 +55,10 @@ enum EventCategory: String, CaseIterable, Codable {
         case .other: return "#95A5A6"
         }
     }
+    
+    var displayName: String {
+        return rawValue.capitalized
+    }
 }
 
 enum Priority: Int, CaseIterable, Codable {
@@ -63,4 +66,13 @@ enum Priority: Int, CaseIterable, Codable {
     case medium = 2
     case high = 3
     case urgent = 4
+    
+    var displayName: String {
+        switch self {
+        case .low: return "Low"
+        case .medium: return "Medium"
+        case .high: return "High"
+        case .urgent: return "Urgent"
+        }
+    }
 }
