@@ -2,14 +2,6 @@
 //  SmartScheduleOptimizer.swift
 //  SwiftCalendar
 //
-//  Created by Torii Barnard on 2025-06-02.
-//
-
-
-//
-//  SmartScheduleOptimizer.swift
-//  SwiftCalendar
-//
 //  Core schedule optimization engine - Ty's primary purpose
 //
 
@@ -119,10 +111,11 @@ class SmartScheduleOptimizer {
         
         // Generate hourly candidates from 6 AM to 11 PM
         for hour in 6...23 {
-            guard let candidateStart = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: date),
-                  let candidateEnd = candidateStart.addingTimeInterval(TimeInterval(duration * 60)) else {
+            guard let candidateStart = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: date) else {
                 continue
             }
+            
+            let candidateEnd = candidateStart.addingTimeInterval(TimeInterval(duration * 60))
             
             // Skip if this would go past midnight
             if !calendar.isDate(candidateEnd, inSameDayAs: date) {
