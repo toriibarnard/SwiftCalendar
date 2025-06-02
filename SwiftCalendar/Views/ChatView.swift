@@ -2,7 +2,7 @@
 //  ChatView.swift
 //  SwiftCalendar
 //
-//  Updated with confirmation dialogs and memory
+//  Redesigned to showcase Ty's schedule optimization abilities
 //
 
 import SwiftUI
@@ -24,8 +24,13 @@ struct ChatView: View {
                     ScrollView {
                         LazyVStack(spacing: 12) {
                             ForEach(viewModel.messages) { message in
-                                MessageBubble(message: message)
-                                    .id(message.id)
+                                MessageBubbleView(
+                                    message: message,
+                                    onSuggestionTap: { suggestion in
+                                        viewModel.selectScheduleSuggestion(suggestion)
+                                    }
+                                )
+                                .id(message.id)
                             }
                             
                             if viewModel.isLoading {
@@ -58,7 +63,7 @@ struct ChatView: View {
                 
                 // Input area
                 HStack(spacing: 12) {
-                    TextField("Ask about your schedule...", text: $viewModel.inputText, axis: .vertical)
+                    TextField("Ask when to schedule something...", text: $viewModel.inputText, axis: .vertical)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .lineLimit(1...4)
                         .focused($isInputFocused)
@@ -75,7 +80,7 @@ struct ChatView: View {
                 .padding()
                 .background(Color(UIColor.systemBackground))
             }
-            .navigationTitle("Ty")
+            .navigationTitle("Ty - Schedule Optimizer")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -107,22 +112,33 @@ struct ChatView: View {
     }
 }
 
-struct MessageBubble: View {
+struct MessageBubbleView: View {
     let message: ChatMessage
+    let onSuggestionTap: (ScheduleSuggestion) -> Void
     
     var body: some View {
         HStack {
             if message.isUser { Spacer() }
             
-            VStack(alignment: message.isUser ? .trailing : .leading, spacing: 4) {
+            VStack(alignment: message.isUser ? .trailing : .leading, spacing: 8) {
+                // Message content
                 Text(message.content)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
                     .background(message.isUser ? Color.blue : Color(UIColor.secondarySystemBackground))
                     .foregroundColor(message.isUser ? .white : .primary)
                     .cornerRadius(20)
-                    .frame(maxWidth: 280, alignment: message.isUser ? .trailing : .leading)
+                    .frame(maxWidth: 300, alignment: message.isUser ? .trailing : .leading)
                 
+                // Schedule suggestions (only for Ty's optimization responses)
+                if let suggestions = message.suggestions, !suggestions.isEmpty {
+                    ScheduleSuggestionsView(
+                        suggestions: suggestions,
+                        onTap: onSuggestionTap
+                    )
+                }
+                
+                // Timestamp
                 Text(message.timestamp.chatFormat())
                     .font(.caption2)
                     .foregroundColor(.secondary)
@@ -130,6 +146,103 @@ struct MessageBubble: View {
             
             if !message.isUser { Spacer() }
         }
+    }
+}
+
+struct ScheduleSuggestionsView: View {
+    let suggestions: [ScheduleSuggestion]
+    let onTap: (ScheduleSuggestion) -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(Array(suggestions.enumerated()), id: \.element.id) { index, suggestion in
+                ScheduleSuggestionCard(
+                    suggestion: suggestion,
+                    rank: index + 1,
+                    onTap: { onTap(suggestion) }
+                )
+            }
+        }
+        .frame(maxWidth: 300)
+    }
+}
+
+struct ScheduleSuggestionCard: View {
+    let suggestion: ScheduleSuggestion
+    let rank: Int
+    let onTap: () -> Void
+    
+    private var timeFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE h:mm a"
+        return formatter
+    }
+    
+    private var scoreColor: Color {
+        let score = suggestion.timeSlot.score
+        if score >= 0.8 { return .green }
+        if score >= 0.6 { return .orange }
+        return .gray
+    }
+    
+    var body: some View {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 6) {
+                // Header with rank and time
+                HStack {
+                    Text("#\(rank)")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(scoreColor)
+                        .foregroundColor(.white)
+                        .cornerRadius(4)
+                    
+                    Text(suggestion.timeSlot.startTime, formatter: timeFormatter)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                    
+                    Spacer()
+                    
+                    // Score indicator
+                    HStack(spacing: 2) {
+                        ForEach(0..<5) { index in
+                            Circle()
+                                .fill(index < Int(suggestion.timeSlot.score * 5) ? scoreColor : Color.gray.opacity(0.3))
+                                .frame(width: 6, height: 6)
+                        }
+                    }
+                }
+                
+                // Reasoning
+                Text(suggestion.timeSlot.reasoning)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.leading)
+                
+                // Action hint
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundColor(.blue)
+                        .font(.caption)
+                    Text("Tap to schedule")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                    Spacer()
+                }
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(UIColor.secondarySystemBackground))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(scoreColor.opacity(0.3), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 

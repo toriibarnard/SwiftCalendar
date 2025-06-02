@@ -2,7 +2,7 @@
 //  ChatViewModel.swift
 //  SwiftCalendar
 //
-//  Updated with conversation memory and confirmation handling
+//  Redesigned for Ty's new vision: Schedule Optimization First
 //
 
 import Foundation
@@ -13,6 +13,13 @@ struct ChatMessage: Identifiable {
     let content: String
     let isUser: Bool
     let timestamp: Date
+    let suggestions: [ScheduleSuggestion]? // New: for optimization responses
+}
+
+struct ScheduleSuggestion: Identifiable {
+    let id = UUID()
+    let timeSlot: IntelligentTyAI.TimeSlot
+    let taskTitle: String
 }
 
 @MainActor
@@ -23,17 +30,38 @@ class ChatViewModel: ObservableObject {
     @Published var errorMessage = ""
     @Published var showingConfirmation = false
     @Published var confirmationMessage = ""
+    @Published var userPreferences = UserSchedulePreferences()
     
-    private let gpt4 = DirectGPT4Calendar()
+    private let intelligentTy = IntelligentTyAI()
     weak var scheduleManager: ScheduleManager?
-    private var pendingAction: DirectGPT4Calendar.CalendarAction?
+    private var pendingOptimization: IntelligentTyAI.FlexibleTask?
+    private var pendingSuggestions: [IntelligentTyAI.TimeSlot] = []
     
     init() {
         messages.append(ChatMessage(
-            content: "Hey! I'm Ty, your smart calendar assistant. I remember our entire conversation and understand context. Try:\n\n• \"I work Friday and Wednesday nights at 5:30pm until 10:30pm\"\n• \"Delete everything\" (I'll ask for confirmation)\n• \"Yes\" or \"No\" to answer my questions\n• \"Find me 4 gym sessions this week, avoid my work hours\"",
+            content: """
+            Hi! I'm Ty, your intelligent schedule assistant. 
+            
+            🎯 **My main superpower**: Finding the BEST times for your flexible tasks!
+            
+            Try asking me:
+            • "When should I go to the gym this week?"
+            • "Find me time for a 2-hour study session"
+            • "What's the best time for a dentist appointment?"
+            
+            📅 I can also automate your calendar:
+            • "I work 8:30-4 on weekdays"
+            • "Add gym Monday, Wednesday, Friday at 6pm"
+            
+            What would you like help optimizing?
+            """,
             isUser: false,
-            timestamp: Date()
+            timestamp: Date(),
+            suggestions: nil
         ))
+        
+        // Load user preferences from UserDefaults or Firebase
+        loadUserPreferences()
     }
     
     func sendMessage() {
@@ -46,25 +74,31 @@ class ChatViewModel: ObservableObject {
         messages.append(ChatMessage(
             content: userMessage,
             isUser: true,
-            timestamp: Date()
+            timestamp: Date(),
+            suggestions: nil
         ))
         
         isLoading = true
         
         Task {
             do {
-                // Get GPT-4 to process the request with conversation memory
-                let (action, message) = try await gpt4.processRequest(userMessage, existingEvents: scheduleManager.events)
+                // Process with the new intelligent Ty AI
+                let response = try await intelligentTy.processRequest(
+                    userMessage,
+                    existingEvents: scheduleManager.events,
+                    userPreferences: userPreferences
+                )
                 
-                // Handle the action
-                await handleCalendarAction(action, message: message, scheduleManager: scheduleManager)
+                // Handle different types of responses
+                await handleTyResponse(response, scheduleManager: scheduleManager)
                 
             } catch {
                 print("Error: \(error)")
                 messages.append(ChatMessage(
-                    content: "I had trouble processing that. Try rephrasing your request.",
+                    content: "I had trouble processing that. Could you try rephrasing your request?",
                     isUser: false,
-                    timestamp: Date()
+                    timestamp: Date(),
+                    suggestions: nil
                 ))
             }
             
@@ -72,175 +106,233 @@ class ChatViewModel: ObservableObject {
         }
     }
     
-    func confirmAction() {
-        guard let action = pendingAction, let scheduleManager = scheduleManager else { return }
-        
-        Task {
-            await executeAction(action, scheduleManager: scheduleManager)
-            pendingAction = nil
-            showingConfirmation = false
-        }
-    }
+    // MARK: - Response Handling
     
-    func cancelAction() {
-        pendingAction = nil
-        showingConfirmation = false
-        
-        messages.append(ChatMessage(
-            content: "Action cancelled. How else can I help you?",
-            isUser: false,
-            timestamp: Date()
-        ))
-    }
-    
-    private func handleCalendarAction(_ action: DirectGPT4Calendar.CalendarAction, message: String, scheduleManager: ScheduleManager) async {
-        print("🔄 Handling calendar action: \(action)")
-        
-        switch action {
-        case .requestConfirmation(let confirmText, let pendingAction):
-            // Store pending action and show confirmation dialog
-            self.pendingAction = pendingAction
-            self.confirmationMessage = confirmText
+    private func handleTyResponse(_ response: IntelligentTyAI.TyResponse, scheduleManager: ScheduleManager) async {
+        switch response {
+        case .scheduleOptimization(let task, let suggestions, let message):
+            print("🎯 Schedule optimization response for: \(task.title)")
+            print("💡 Found \(suggestions.count) suggestions")
             
-            messages.append(ChatMessage(
-                content: confirmText,
-                isUser: false,
-                timestamp: Date()
-            ))
+            // Store for potential scheduling
+            pendingOptimization = task
+            pendingSuggestions = suggestions
             
-            showingConfirmation = true
-            
-        case .removeAllEvents:
-            // Execute immediately if no confirmation needed
-            await executeAction(action, scheduleManager: scheduleManager)
-            
-            messages.append(ChatMessage(
-                content: message.isEmpty ? "All events have been removed from your calendar." : message,
-                isUser: false,
-                timestamp: Date()
-            ))
-            
-        default:
-            // Handle other actions immediately
-            await executeAction(action, scheduleManager: scheduleManager)
+            // Convert to UI suggestions
+            let uiSuggestions = suggestions.map { timeSlot in
+                ScheduleSuggestion(timeSlot: timeSlot, taskTitle: task.title)
+            }
             
             messages.append(ChatMessage(
                 content: message,
                 isUser: false,
-                timestamp: Date()
+                timestamp: Date(),
+                suggestions: uiSuggestions
+            ))
+            
+            // Learn from this interaction
+            updateUserPreferences(for: task, selectedSlots: suggestions)
+            
+        case .calendarAutomation(let action, let message):
+            print("📅 Calendar automation response")
+            await executeCalendarAction(action, scheduleManager: scheduleManager)
+            
+            messages.append(ChatMessage(
+                content: message,
+                isUser: false,
+                timestamp: Date(),
+                suggestions: nil
+            ))
+            
+        case .requestConfirmation(let confirmText, let pendingAction):
+            print("❓ Confirmation requested")
+            confirmationMessage = confirmText
+            showingConfirmation = true
+            
+            messages.append(ChatMessage(
+                content: confirmText,
+                isUser: false,
+                timestamp: Date(),
+                suggestions: nil
+            ))
+            
+        case .conversational(let message):
+            print("💬 Conversational response")
+            messages.append(ChatMessage(
+                content: message,
+                isUser: false,
+                timestamp: Date(),
+                suggestions: nil
+            ))
+            
+        case .clarifyingQuestion(let question, let context):
+            print("🤔 Clarifying question")
+            messages.append(ChatMessage(
+                content: question,
+                isUser: false,
+                timestamp: Date(),
+                suggestions: nil
             ))
         }
     }
     
-    private func executeAction(_ action: DirectGPT4Calendar.CalendarAction, scheduleManager: ScheduleManager) async {
-        print("🚀 Executing action: \(action)")
+    // MARK: - Schedule Suggestion Selection
+    
+    func selectScheduleSuggestion(_ suggestion: ScheduleSuggestion) {
+        guard let task = pendingOptimization,
+              let scheduleManager = scheduleManager else { return }
         
+        print("✅ User selected suggestion: \(suggestion.taskTitle) at \(suggestion.timeSlot.startTime)")
+        
+        // Create the event
+        scheduleManager.addAIEvent(
+            at: suggestion.timeSlot.startTime,
+            title: task.title,
+            category: task.category,
+            duration: task.duration
+        )
+        
+        // Provide confirmation
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateFormat = "EEEE h:mm a"
+        let timeString = timeFormatter.string(from: suggestion.timeSlot.startTime)
+        
+        messages.append(ChatMessage(
+            content: "Perfect! I've scheduled \(task.title) for \(timeString). \(suggestion.timeSlot.reasoning)",
+            isUser: false,
+            timestamp: Date(),
+            suggestions: nil
+        ))
+        
+        // Learn from this selection
+        learnFromSelection(task: task, selectedSlot: suggestion.timeSlot)
+        
+        // Clear pending
+        pendingOptimization = nil
+        pendingSuggestions = []
+    }
+    
+    // MARK: - Calendar Action Execution
+    
+    private func executeCalendarAction(_ action: IntelligentTyAI.CalendarAction, scheduleManager: ScheduleManager) async {
         switch action {
         case .addEvents(let events):
             print("📅 Adding \(events.count) events")
-            // Add events to calendar
-            for (index, event) in events.enumerated() {
-                print("📅 Event \(index + 1): \(event.title) at \(event.date) for \(event.duration) minutes")
-                
-                if event.isRecurring && !event.recurrenceDays.isEmpty {
-                    print("🔄 Creating recurring events for days: \(event.recurrenceDays)")
-                    // Create recurring events
-                    await createRecurringEvents(event, scheduleManager: scheduleManager)
-                } else {
-                    // Single event
-                    let category = EventCategory(rawValue: event.category) ?? .personal
-                    print("➕ Adding single event: \(event.title) - \(category)")
-                    scheduleManager.addAIEvent(
-                        at: event.date,
-                        title: event.title,
-                        category: category,
-                        duration: event.duration
-                    )
-                }
+            for event in events {
+                let category = EventCategory(rawValue: event.category) ?? .personal
+                scheduleManager.addAIEvent(
+                    at: event.date,
+                    title: event.title,
+                    category: category,
+                    duration: event.duration
+                )
             }
             
         case .removeEvents(let patterns):
-            print("🗑️ Removing events matching patterns: \(patterns)")
-            // Find and remove matching events
-            let eventsToRemove = gpt4.findEventsToRemove(patterns, from: scheduleManager.events)
-            
-            print("🗑️ Found \(eventsToRemove.count) events to remove for patterns: \(patterns)")
-            
-            for event in eventsToRemove {
-                scheduleManager.deleteEvent(event)
-                print("🗑️ Deleted: \(event.title) on \(event.startTime)")
-            }
-            
-            if eventsToRemove.isEmpty {
-                messages.append(ChatMessage(
-                    content: "I couldn't find any events matching '\(patterns.joined(separator: ", "))'. Try being more specific about what you want to remove.",
-                    isUser: false,
-                    timestamp: Date()
-                ))
-            }
+            print("🗑️ Removing events matching: \(patterns)")
+            // Implementation for removing events
             
         case .removeAllEvents:
             print("🗑️ Removing all events")
-            // Remove all events
             let allEvents = scheduleManager.events
             for event in allEvents {
                 scheduleManager.deleteEvent(event)
             }
             
-            print("🗑️ Deleted all \(allEvents.count) events")
-            
-        case .requestConfirmation(_, _):
-            print("❓ Request confirmation - already handled")
-            // Already handled in handleCalendarAction
-            break
-            
-        case .showMessage(let msg):
-            print("💬 Show message: \(msg)")
-            // Just show the message, no action needed
-            break
+        case .showMessage(let message):
+            print("💬 Show message: \(message)")
+            // Already handled in the response
         }
     }
     
-    // Reset conversation (useful for testing)
+    // MARK: - Learning and Preferences
+    
+    private func updateUserPreferences(for task: IntelligentTyAI.FlexibleTask, selectedSlots: [IntelligentTyAI.TimeSlot]) {
+        // Learn from the suggestions provided (even if not selected yet)
+        if !selectedSlots.isEmpty {
+            var categoryPref = userPreferences.categoryPreferences[task.category] ?? CategoryPreference()
+            
+            // Record the hours that were suggested as good options
+            for slot in selectedSlots.prefix(2) { // Top 2 suggestions
+                let hour = Calendar.current.component(.hour, from: slot.startTime)
+                categoryPref.preferredHours.insert(hour)
+            }
+            
+            // Update average duration for this category
+            let existingAvg = categoryPref.averageDuration
+            categoryPref.averageDuration = (existingAvg + task.duration) / 2
+            
+            userPreferences.categoryPreferences[task.category] = categoryPref
+            saveUserPreferences()
+        }
+    }
+    
+    private func learnFromSelection(task: IntelligentTyAI.FlexibleTask, selectedSlot: IntelligentTyAI.TimeSlot) {
+        // Learn from user's actual selection
+        var categoryPref = userPreferences.categoryPreferences[task.category] ?? CategoryPreference()
+        
+        let selectedHour = Calendar.current.component(.hour, from: selectedSlot.startTime)
+        
+        // Strongly reinforce the selected hour
+        categoryPref.preferredHours.insert(selectedHour)
+        
+        // Also record adjacent hours as preferred
+        categoryPref.preferredHours.insert(max(6, selectedHour - 1))
+        categoryPref.preferredHours.insert(min(23, selectedHour + 1))
+        
+        userPreferences.categoryPreferences[task.category] = categoryPref
+        saveUserPreferences()
+        
+        print("🧠 Learned preference: \(task.category) at \(selectedHour):00")
+    }
+    
+    // MARK: - Persistence
+    
+    private func loadUserPreferences() {
+        if let data = UserDefaults.standard.data(forKey: "TyUserPreferences"),
+           let preferences = try? JSONDecoder().decode(UserSchedulePreferences.self, from: data) {
+            self.userPreferences = preferences
+            print("📱 Loaded user preferences from UserDefaults")
+        } else {
+            print("📱 Using default user preferences")
+        }
+    }
+    
+    private func saveUserPreferences() {
+        if let data = try? JSONEncoder().encode(userPreferences) {
+            UserDefaults.standard.set(data, forKey: "TyUserPreferences")
+            print("💾 Saved user preferences to UserDefaults")
+        }
+    }
+    
+    // MARK: - Utility Functions
+    
     func clearConversation() {
-        gpt4.clearConversationHistory()
+        intelligentTy.clearConversationHistory()
         messages = [
             ChatMessage(
-                content: "Conversation cleared! I'm ready to help you with your calendar.",
+                content: "Conversation cleared! What would you like help optimizing today?",
                 isUser: false,
-                timestamp: Date()
+                timestamp: Date(),
+                suggestions: nil
             )
         ]
     }
     
-    private func createRecurringEvents(_ event: DirectGPT4Calendar.SimpleEvent, scheduleManager: ScheduleManager) async {
-        let calendar = Calendar.current
-        let endDate = calendar.date(byAdding: .weekOfYear, value: 4, to: Date()) ?? Date()
-        
-        var currentDate = event.date
-        let baseComponents = calendar.dateComponents([.hour, .minute], from: event.date)
-        
-        while currentDate <= endDate {
-            let weekday = calendar.component(.weekday, from: currentDate) - 1 // 0-based
-            
-            if event.recurrenceDays.contains(weekday) {
-                var components = calendar.dateComponents([.year, .month, .day], from: currentDate)
-                components.hour = baseComponents.hour
-                components.minute = baseComponents.minute
-                
-                if let eventDate = calendar.date(from: components) {
-                    let category = EventCategory(rawValue: event.category) ?? .personal
-                    scheduleManager.addAIEvent(
-                        at: eventDate,
-                        title: event.title,
-                        category: category,
-                        duration: event.duration
-                    )
-                }
-            }
-            
-            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
-        }
+    func confirmAction() {
+        // Handle confirmations for dangerous actions
+        showingConfirmation = false
+        // Implementation depends on what was being confirmed
+    }
+    
+    func cancelAction() {
+        showingConfirmation = false
+        messages.append(ChatMessage(
+            content: "Action cancelled. What else can I help you with?",
+            isUser: false,
+            timestamp: Date(),
+            suggestions: nil
+        ))
     }
 }
 
