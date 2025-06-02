@@ -2,7 +2,7 @@
 //  DirectGPT4Calendar.swift
 //  SwiftCalendar
 //
-//  Improved GPT-4 approach with better deletion handling
+//  Smart calendar AI with conflict detection and better scheduling
 //
 
 import Foundation
@@ -38,68 +38,58 @@ class DirectGPT4Calendar {
     }
     
     func processRequest(_ input: String, existingEvents: [ScheduleEvent]) async throws -> (action: CalendarAction, message: String) {
+        let today = Date()
         let formatter = DateFormatter()
         formatter.dateFormat = "EEEE, MMMM d, yyyy 'at' h:mm a"
-        let today = formatter.string(from: Date())
+        let todayString = formatter.string(from: today)
         
-        // Format existing events
-        let eventList = existingEvents.prefix(20).map { event in
-            let endTime = event.startTime.addingTimeInterval(TimeInterval(event.duration * 60))
-            let timeFormatter = DateFormatter()
-            timeFormatter.dateFormat = "EEEE, MMM d h:mm a"
-            return "- \(event.title): \(timeFormatter.string(from: event.startTime)) to \(timeFormatter.string(from: endTime))"
-        }.joined(separator: "\n")
+        // Create detailed schedule analysis
+        let scheduleAnalysis = analyzeSchedule(existingEvents, relativeTo: today)
         
         let systemPrompt = """
-        You are a calendar assistant. Current date/time: \(today)
+        You are Ty, a smart calendar assistant. Current date/time: \(todayString)
         
-        Existing calendar events:
-        \(eventList.isEmpty ? "Calendar is empty" : eventList)
+        CURRENT SCHEDULE ANALYSIS:
+        \(scheduleAnalysis.detailedSchedule)
         
-        CRITICAL INSTRUCTIONS:
-        1. TODAY IS \(today). Calculate all dates relative to this.
-        2. If user says "delete", "remove", "cancel" - respond with REMOVE_START section
-        3. If user says "add", "schedule", "I have" - respond with EVENTS_START section
-        4. Be very careful about DELETE vs ADD operations
+        AVAILABLE TIME SLOTS (conflict-free):
+        \(scheduleAnalysis.availableSlots)
         
-        For DELETION requests, return this format:
+        WORK PATTERN DETECTED:
+        \(scheduleAnalysis.workPattern)
+        
+        CRITICAL RULES:
+        1. NEVER schedule events that conflict with existing events
+        2. When finding "best times", ONLY use the available time slots listed above
+        3. For deletion, be specific about time of day (morning/afternoon/evening)
+        4. Analyze the user's work pattern and preferences
+        
+        For DELETION requests, return:
         REMOVE_START
-        work
-        gym tomorrow
-        meeting friday
+        [specific event description]
         REMOVE_END
         
-        MESSAGE_START
-        I'll remove those events from your calendar.
-        MESSAGE_END
-        
-        For ADDING events, return this format:
+        For SCHEDULING requests, return:
         EVENTS_START
-        title: Work
-        date: 2024-06-04 17:30
-        duration: 300
-        category: work
-        recurring: true
-        days: wednesday,friday
-        ---
         title: Gym
-        date: 2024-06-02 18:00
-        duration: 90
+        date: 2024-06-04 17:30
+        duration: 60
         category: fitness
         recurring: false
         EVENTS_END
         
-        MESSAGE_START
-        I'll add those events to your calendar.
-        MESSAGE_END
+        EXAMPLES:
+        - "delete Friday evening shift" → REMOVE "work friday evening" (5:30-10:30pm shift)
+        - "cancel my morning work" → REMOVE "work morning" (8:30-4pm shift)
+        - "gym 4x this week" → find 4 available slots, avoid all conflicts
         
-        DELETION EXAMPLES:
-        - "delete work tomorrow" → REMOVE work tomorrow
-        - "cancel my gym session" → REMOVE gym
-        - "remove meeting on friday" → REMOVE meeting friday
+        SMART SCHEDULING PRIORITIES:
+        1. Respect existing commitments (work, appointments)
+        2. Use afternoon/evening slots for gym (user preference)
+        3. Spread sessions across different days
+        4. Consider optimal rest days between workouts
         
         Categories: work, fitness, health, study, social, personal, other
-        For recurring events, use days: monday,tuesday,wednesday,thursday,friday,saturday,sunday
         """
         
         let request = [
@@ -108,8 +98,8 @@ class DirectGPT4Calendar {
                 ["role": "system", "content": systemPrompt],
                 ["role": "user", "content": input]
             ],
-            "temperature": 0.2,
-            "max_tokens": 1000
+            "temperature": 0.1, // Lower for more consistent scheduling
+            "max_tokens": 1500
         ] as [String : Any]
         
         var urlRequest = URLRequest(url: URL(string: apiURL)!)
@@ -130,6 +120,143 @@ class DirectGPT4Calendar {
         // Parse the response
         let (action, userMessage) = parseResponse(content)
         return (action, userMessage)
+    }
+    
+    private func analyzeSchedule(_ events: [ScheduleEvent], relativeTo today: Date) -> ScheduleAnalysis {
+        let calendar = Calendar.current
+        let thisWeekStart = calendar.dateInterval(of: .weekOfYear, for: today)?.start ?? today
+        let thisWeekEnd = calendar.date(byAdding: .day, value: 7, to: thisWeekStart) ?? today
+        
+        // Get this week's events
+        let thisWeekEvents = events.filter { event in
+            event.startTime >= thisWeekStart && event.startTime < thisWeekEnd
+        }.sorted { $0.startTime < $1.startTime }
+        
+        // Create detailed schedule
+        var detailedSchedule = "THIS WEEK'S SCHEDULE:\n"
+        if thisWeekEvents.isEmpty {
+            detailedSchedule += "No events scheduled this week.\n"
+        } else {
+            let dayFormatter = DateFormatter()
+            dayFormatter.dateFormat = "EEEE"
+            let timeFormatter = DateFormatter()
+            timeFormatter.dateFormat = "h:mm a"
+            
+            var currentDay: String? = nil
+            for event in thisWeekEvents {
+                let eventDay = dayFormatter.string(from: event.startTime)
+                let startTime = timeFormatter.string(from: event.startTime)
+                let endTime = timeFormatter.string(from: event.startTime.addingTimeInterval(TimeInterval(event.duration * 60)))
+                
+                if currentDay != eventDay {
+                    detailedSchedule += "\n\(eventDay):\n"
+                    currentDay = eventDay
+                }
+                
+                let timeOfDay = getTimeOfDay(from: event.startTime)
+                detailedSchedule += "  • \(event.title): \(startTime)-\(endTime) (\(timeOfDay))\n"
+            }
+        }
+        
+        // Analyze work pattern
+        let workEvents = thisWeekEvents.filter { $0.title.lowercased().contains("work") }
+        var workPattern = "WORK PATTERN:\n"
+        if workEvents.isEmpty {
+            workPattern += "No work events detected.\n"
+        } else {
+            let workByDay = Dictionary(grouping: workEvents) { event in
+                calendar.component(.weekday, from: event.startTime)
+            }
+            
+            for (weekday, dayEvents) in workByDay.sorted(by: { $0.key < $1.key }) {
+                let dayName = calendar.weekdaySymbols[weekday - 1]
+                workPattern += "\n\(dayName):\n"
+                for event in dayEvents.sorted(by: { $0.startTime < $1.startTime }) {
+                    let timeFormatter = DateFormatter()
+                    timeFormatter.dateFormat = "h:mm a"
+                    let start = timeFormatter.string(from: event.startTime)
+                    let end = timeFormatter.string(from: event.startTime.addingTimeInterval(TimeInterval(event.duration * 60)))
+                    let timeOfDay = getTimeOfDay(from: event.startTime)
+                    workPattern += "  • \(start)-\(end) (\(timeOfDay) shift)\n"
+                }
+            }
+        }
+        
+        // Find available time slots
+        let availableSlots = findDetailedAvailableSlots(events: thisWeekEvents, weekStart: thisWeekStart)
+        
+        return ScheduleAnalysis(
+            detailedSchedule: detailedSchedule,
+            availableSlots: availableSlots,
+            workPattern: workPattern
+        )
+    }
+    
+    private func getTimeOfDay(from date: Date) -> String {
+        let hour = Calendar.current.component(.hour, from: date)
+        switch hour {
+        case 0..<6:
+            return "early morning"
+        case 6..<12:
+            return "morning"
+        case 12..<17:
+            return "afternoon"
+        case 17..<21:
+            return "evening"
+        case 21..<24:
+            return "night"
+        default:
+            return "unknown"
+        }
+    }
+    
+    private func findDetailedAvailableSlots(events: [ScheduleEvent], weekStart: Date) -> String {
+        let calendar = Calendar.current
+        var availableSlots = "AVAILABLE TIME SLOTS (1-hour windows):\n"
+        
+        // Check each day of the week
+        for dayOffset in 0..<7 {
+            guard let day = calendar.date(byAdding: .day, value: dayOffset, to: weekStart) else { continue }
+            let dayName = calendar.component(.weekday, from: day)
+            let dayString = calendar.weekdaySymbols[dayName - 1]
+            
+            let dayEvents = events.filter { event in
+                calendar.isDate(event.startTime, inSameDayAs: day)
+            }
+            
+            availableSlots += "\n\(dayString):\n"
+            
+            // Check hourly slots from 6 AM to 10 PM
+            var hasAvailableSlots = false
+            for hour in 6...22 {
+                guard let timeSlot = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: day) else { continue }
+                
+                // Check if this hour conflicts with any event
+                let hasConflict = dayEvents.contains { event in
+                    let eventStart = event.startTime
+                    let eventEnd = event.startTime.addingTimeInterval(TimeInterval(event.duration * 60))
+                    let slotEnd = timeSlot.addingTimeInterval(3600) // 1 hour slot
+                    
+                    return (timeSlot < eventEnd && slotEnd > eventStart)
+                }
+                
+                if !hasConflict {
+                    let timeFormatter = DateFormatter()
+                    timeFormatter.dateFormat = "h:mm a"
+                    let timeString = timeFormatter.string(from: timeSlot)
+                    let endTimeString = timeFormatter.string(from: timeSlot.addingTimeInterval(3600))
+                    let timeOfDay = getTimeOfDay(from: timeSlot)
+                    availableSlots += "  ✅ \(timeString)-\(endTimeString) (\(timeOfDay))\n"
+                    hasAvailableSlots = true
+                }
+            }
+            
+            if !hasAvailableSlots {
+                availableSlots += "  ❌ No available slots\n"
+            }
+        }
+        
+        return availableSlots
     }
     
     private func parseResponse(_ content: String) -> (CalendarAction, String) {
@@ -225,53 +352,53 @@ class DirectGPT4Calendar {
         return events
     }
     
-    // Helper function to find events to remove based on patterns
+    // Improved deletion matching with time-of-day awareness
     func findEventsToRemove(_ patterns: [String], from events: [ScheduleEvent]) -> [ScheduleEvent] {
         var eventsToRemove: [ScheduleEvent] = []
         
         for pattern in patterns {
             let patternLower = pattern.lowercased()
+            print("🔍 Looking for events matching pattern: '\(pattern)'")
             
             // Find events that match the pattern
             let matchingEvents = events.filter { event in
-                let titleMatches = event.title.lowercased().contains(patternLower)
+                let titleMatches = event.title.lowercased().contains(extractKeyword(from: patternLower))
                 
-                // Check if pattern includes date information
-                if patternLower.contains("tomorrow") {
-                    let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
-                    let eventDate = Calendar.current.startOfDay(for: event.startTime)
-                    let tomorrowDate = Calendar.current.startOfDay(for: tomorrow)
-                    return titleMatches && eventDate == tomorrowDate
-                } else if patternLower.contains("today") {
-                    let today = Calendar.current.startOfDay(for: Date())
-                    let eventDate = Calendar.current.startOfDay(for: event.startTime)
-                    return titleMatches && eventDate == today
-                } else if patternLower.contains("friday") {
-                    let weekday = Calendar.current.component(.weekday, from: event.startTime)
-                    return titleMatches && weekday == 6 // Friday
-                } else if patternLower.contains("monday") {
-                    let weekday = Calendar.current.component(.weekday, from: event.startTime)
-                    return titleMatches && weekday == 2 // Monday
-                } else if patternLower.contains("tuesday") {
-                    let weekday = Calendar.current.component(.weekday, from: event.startTime)
-                    return titleMatches && weekday == 3 // Tuesday
-                } else if patternLower.contains("wednesday") {
-                    let weekday = Calendar.current.component(.weekday, from: event.startTime)
-                    return titleMatches && weekday == 4 // Wednesday
-                } else if patternLower.contains("thursday") {
-                    let weekday = Calendar.current.component(.weekday, from: event.startTime)
-                    return titleMatches && weekday == 5 // Thursday
-                } else if patternLower.contains("saturday") {
-                    let weekday = Calendar.current.component(.weekday, from: event.startTime)
-                    return titleMatches && weekday == 7 // Saturday
-                } else if patternLower.contains("sunday") {
-                    let weekday = Calendar.current.component(.weekday, from: event.startTime)
-                    return titleMatches && weekday == 1 // Sunday
+                if !titleMatches {
+                    return false
                 }
                 
-                return titleMatches
+                // Check time-of-day specificity
+                if patternLower.contains("evening") || patternLower.contains("night") {
+                    let hour = Calendar.current.component(.hour, from: event.startTime)
+                    let isEvening = hour >= 17 && hour <= 23
+                    print("  🌅 Checking evening event: \(event.title) at \(hour):xx - isEvening: \(isEvening)")
+                    return isEvening
+                } else if patternLower.contains("morning") {
+                    let hour = Calendar.current.component(.hour, from: event.startTime)
+                    let isMorning = hour >= 6 && hour < 12
+                    print("  🌅 Checking morning event: \(event.title) at \(hour):xx - isMorning: \(isMorning)")
+                    return isMorning
+                } else if patternLower.contains("afternoon") {
+                    let hour = Calendar.current.component(.hour, from: event.startTime)
+                    let isAfternoon = hour >= 12 && hour < 17
+                    print("  🌅 Checking afternoon event: \(event.title) at \(hour):xx - isAfternoon: \(isAfternoon)")
+                    return isAfternoon
+                }
+                
+                // Check day-specific patterns
+                if let dayMatch = extractDayPattern(from: patternLower) {
+                    let eventWeekday = Calendar.current.component(.weekday, from: event.startTime)
+                    let matches = eventWeekday == dayMatch
+                    print("  📅 Checking day pattern: \(event.title) - event weekday: \(eventWeekday), target: \(dayMatch), matches: \(matches)")
+                    return matches
+                }
+                
+                print("  ✅ Title matches pattern: \(event.title)")
+                return true
             }
             
+            print("  📋 Found \(matchingEvents.count) matching events for pattern '\(pattern)'")
             eventsToRemove.append(contentsOf: matchingEvents)
         }
         
@@ -280,6 +407,39 @@ class DirectGPT4Calendar {
             eventsToRemove.first { $0.id == id }
         }
         
+        print("🗑️ Total unique events to remove: \(uniqueEvents.count)")
         return uniqueEvents
     }
+    
+    private func extractKeyword(from pattern: String) -> String {
+        let keywords = ["work", "gym", "meeting", "appointment", "dentist", "doctor", "lunch", "dinner"]
+        for keyword in keywords {
+            if pattern.contains(keyword) {
+                return keyword
+            }
+        }
+        return pattern
+    }
+    
+    private func extractDayPattern(from pattern: String) -> Int? {
+        let dayMap = [
+            "sunday": 1, "monday": 2, "tuesday": 3, "wednesday": 4,
+            "thursday": 5, "friday": 6, "saturday": 7,
+            "tomorrow": Calendar.current.component(.weekday, from: Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()),
+            "today": Calendar.current.component(.weekday, from: Date())
+        ]
+        
+        for (dayName, weekday) in dayMap {
+            if pattern.contains(dayName) {
+                return weekday
+            }
+        }
+        return nil
+    }
+}
+
+struct ScheduleAnalysis {
+    let detailedSchedule: String
+    let availableSlots: String
+    let workPattern: String
 }
