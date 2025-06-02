@@ -289,43 +289,26 @@ class DirectGPT4Calendar {
     }
     
     private func parseResponse(_ content: String) -> (CalendarAction, String) {
-        var userMessage = ""
+        // Default message is the content with special blocks removed manually
+        var userMessage = content
         
-        // Extract message (everything that's not in special blocks)
-        var cleanContent = content
+        // Extract and return specific actions without modifying the original string
         
-        // Remove all special blocks to get the user message
-        let blockPatterns = [
-            ("CONFIRM_START", "CONFIRM_END"),
-            ("REMOVE_ALL_START", "REMOVE_ALL_END"),
-            ("REMOVE_START", "REMOVE_END"),
-            ("EVENTS_START", "EVENTS_END"),
-            ("MESSAGE_START", "MESSAGE_END")
-        ]
-        
-        for (startPattern, endPattern) in blockPatterns {
-            if let startRange = cleanContent.range(of: startPattern),
-               let endRange = cleanContent.range(of: endPattern) {
-                cleanContent.removeSubrange(startRange.lowerBound...endRange.upperBound)
-            }
-        }
-        
-        userMessage = cleanContent.trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        // Check for confirmation requests
+        // 1. Check for confirmation requests
         if let confirmStart = content.range(of: "CONFIRM_START"),
            let confirmEnd = content.range(of: "CONFIRM_END") {
             let confirmText = String(content[confirmStart.upperBound..<confirmEnd.lowerBound])
-            return (.requestConfirmation(confirmText.trimmingCharacters(in: .whitespacesAndNewlines),
-                                       pendingAction: .removeAllEvents), confirmText)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return (.requestConfirmation(confirmText, pendingAction: .removeAllEvents), confirmText)
         }
         
-        // Check for remove all
+        // 2. Check for remove all events
         if content.contains("REMOVE_ALL_START") && content.contains("REMOVE_ALL_END") {
-            return (.removeAllEvents, userMessage.isEmpty ? "I'll remove all events from your calendar." : userMessage)
+            let message = extractMessageFromContent(content) ?? "All events have been removed from your calendar."
+            return (.removeAllEvents, message)
         }
         
-        // Check for removal requests
+        // 3. Check for specific event removal
         if let removeStart = content.range(of: "REMOVE_START"),
            let removeEnd = content.range(of: "REMOVE_END") {
             let removeText = String(content[removeStart.upperBound..<removeEnd.lowerBound])
@@ -333,20 +316,68 @@ class DirectGPT4Calendar {
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty }
             
-            return (.removeEvents(removePatterns), userMessage.isEmpty ? "I'll remove those events." : userMessage)
+            let message = extractMessageFromContent(content) ?? "I'll remove those events."
+            return (.removeEvents(removePatterns), message)
         }
         
-        // Check for add events
+        // 4. Check for add events
         if let eventsStart = content.range(of: "EVENTS_START"),
            let eventsEnd = content.range(of: "EVENTS_END") {
             let eventsText = String(content[eventsStart.upperBound..<eventsEnd.lowerBound])
             let events = parseEvents(from: eventsText)
             
-            return (.addEvents(events), userMessage.isEmpty ? "I'll add those events." : userMessage)
+            let message = extractMessageFromContent(content) ?? "I'll add those events."
+            return (.addEvents(events), message)
         }
         
-        // Default to showing message
-        return (.showMessage(userMessage), userMessage)
+        // 5. Default - just show the message
+        let cleanMessage = extractMessageFromContent(content) ?? content.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (.showMessage(cleanMessage), cleanMessage)
+    }
+    
+    // Helper method to safely extract message without crashing
+    private func extractMessageFromContent(_ content: String) -> String? {
+        // Try to extract from MESSAGE_START/MESSAGE_END blocks
+        if let messageStart = content.range(of: "MESSAGE_START"),
+           let messageEnd = content.range(of: "MESSAGE_END") {
+            let extracted = String(content[messageStart.upperBound..<messageEnd.lowerBound])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if !extracted.isEmpty {
+                return extracted
+            }
+        }
+        
+        // Fallback: return content with known blocks manually filtered out
+        var lines = content.components(separatedBy: .newlines)
+        
+        // Remove lines that are part of special blocks
+        let blockMarkers = [
+            "CONFIRM_START", "CONFIRM_END",
+            "REMOVE_ALL_START", "REMOVE_ALL_END",
+            "REMOVE_START", "REMOVE_END",
+            "EVENTS_START", "EVENTS_END",
+            "MESSAGE_START", "MESSAGE_END"
+        ]
+        
+        lines = lines.filter { line in
+            let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            return !blockMarkers.contains(trimmedLine)
+        }
+        
+        // Also filter out event definition lines
+        lines = lines.filter { line in
+            let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            return !trimmedLine.hasPrefix("title:") &&
+                   !trimmedLine.hasPrefix("date:") &&
+                   !trimmedLine.hasPrefix("duration:") &&
+                   !trimmedLine.hasPrefix("category:") &&
+                   !trimmedLine.hasPrefix("recurring:") &&
+                   !trimmedLine.hasPrefix("days:") &&
+                   !trimmedLine.hasPrefix("---")
+        }
+        
+        let result = lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        return result.isEmpty ? nil : result
     }
     
     private func parseEvents(from text: String) -> [SimpleEvent] {
