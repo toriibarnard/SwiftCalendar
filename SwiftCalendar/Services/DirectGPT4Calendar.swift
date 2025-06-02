@@ -2,15 +2,7 @@
 //  DirectGPT4Calendar.swift
 //  SwiftCalendar
 //
-//  Created by Torii Barnard on 2025-06-01.
-//
-
-
-//
-//  DirectGPT4Calendar.swift
-//  SwiftCalendar
-//
-//  Direct GPT-4 approach - works like ChatGPT web
+//  Improved GPT-4 approach with better deletion handling
 //
 
 import Foundation
@@ -39,7 +31,13 @@ class DirectGPT4Calendar {
         let recurrenceDays: [Int]
     }
     
-    func processRequest(_ input: String, existingEvents: [ScheduleEvent]) async throws -> (events: [SimpleEvent], message: String) {
+    enum CalendarAction {
+        case addEvents([SimpleEvent])
+        case removeEvents([String]) // Array of event titles/patterns to remove
+        case showMessage(String)
+    }
+    
+    func processRequest(_ input: String, existingEvents: [ScheduleEvent]) async throws -> (action: CalendarAction, message: String) {
         let formatter = DateFormatter()
         formatter.dateFormat = "EEEE, MMMM d, yyyy 'at' h:mm a"
         let today = formatter.string(from: Date())
@@ -58,11 +56,24 @@ class DirectGPT4Calendar {
         Existing calendar events:
         \(eventList.isEmpty ? "Calendar is empty" : eventList)
         
-        Instructions:
-        1. Parse the user's request
-        2. Check for conflicts with existing events
-        3. Return a response in this EXACT format:
+        CRITICAL INSTRUCTIONS:
+        1. TODAY IS \(today). Calculate all dates relative to this.
+        2. If user says "delete", "remove", "cancel" - respond with REMOVE_START section
+        3. If user says "add", "schedule", "I have" - respond with EVENTS_START section
+        4. Be very careful about DELETE vs ADD operations
         
+        For DELETION requests, return this format:
+        REMOVE_START
+        work
+        gym tomorrow
+        meeting friday
+        REMOVE_END
+        
+        MESSAGE_START
+        I'll remove those events from your calendar.
+        MESSAGE_END
+        
+        For ADDING events, return this format:
         EVENTS_START
         title: Work
         date: 2024-06-04 17:30
@@ -79,17 +90,16 @@ class DirectGPT4Calendar {
         EVENTS_END
         
         MESSAGE_START
-        I'll add work on Wednesday and Friday nights from 5:30 PM to 10:30 PM. I notice you already have [any conflicts]. 
+        I'll add those events to your calendar.
         MESSAGE_END
+        
+        DELETION EXAMPLES:
+        - "delete work tomorrow" → REMOVE work tomorrow
+        - "cancel my gym session" → REMOVE gym
+        - "remove meeting on friday" → REMOVE meeting friday
         
         Categories: work, fitness, health, study, social, personal, other
         For recurring events, use days: monday,tuesday,wednesday,thursday,friday,saturday,sunday
-        
-        BE SMART: 
-        - If user says "I work Friday and Wednesday nights too" - that means ADD to existing work schedule
-        - Calculate actual dates correctly
-        - Suggest optimal times when asked
-        - Handle "6 gym sessions this week" by finding 6 good time slots
         """
         
         let request = [
@@ -98,7 +108,7 @@ class DirectGPT4Calendar {
                 ["role": "system", "content": systemPrompt],
                 ["role": "user", "content": input]
             ],
-            "temperature": 0.3,
+            "temperature": 0.2,
             "max_tokens": 1000
         ] as [String : Any]
         
@@ -118,15 +128,12 @@ class DirectGPT4Calendar {
         }
         
         // Parse the response
-        var events: [SimpleEvent] = []
+        let (action, userMessage) = parseResponse(content)
+        return (action, userMessage)
+    }
+    
+    private func parseResponse(_ content: String) -> (CalendarAction, String) {
         var userMessage = ""
-        
-        // Extract events
-        if let eventsStart = content.range(of: "EVENTS_START"),
-           let eventsEnd = content.range(of: "EVENTS_END") {
-            let eventsText = String(content[eventsStart.upperBound..<eventsEnd.lowerBound])
-            events = parseEvents(from: eventsText)
-        }
         
         // Extract message
         if let messageStart = content.range(of: "MESSAGE_START"),
@@ -137,7 +144,28 @@ class DirectGPT4Calendar {
             userMessage = content
         }
         
-        return (events, userMessage)
+        // Check for removal requests
+        if let removeStart = content.range(of: "REMOVE_START"),
+           let removeEnd = content.range(of: "REMOVE_END") {
+            let removeText = String(content[removeStart.upperBound..<removeEnd.lowerBound])
+            let removePatterns = removeText.components(separatedBy: .newlines)
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            
+            return (.removeEvents(removePatterns), userMessage)
+        }
+        
+        // Check for add events
+        if let eventsStart = content.range(of: "EVENTS_START"),
+           let eventsEnd = content.range(of: "EVENTS_END") {
+            let eventsText = String(content[eventsStart.upperBound..<eventsEnd.lowerBound])
+            let events = parseEvents(from: eventsText)
+            
+            return (.addEvents(events), userMessage)
+        }
+        
+        // Default to showing message
+        return (.showMessage(userMessage), userMessage)
     }
     
     private func parseEvents(from text: String) -> [SimpleEvent] {
@@ -195,5 +223,63 @@ class DirectGPT4Calendar {
         }
         
         return events
+    }
+    
+    // Helper function to find events to remove based on patterns
+    func findEventsToRemove(_ patterns: [String], from events: [ScheduleEvent]) -> [ScheduleEvent] {
+        var eventsToRemove: [ScheduleEvent] = []
+        
+        for pattern in patterns {
+            let patternLower = pattern.lowercased()
+            
+            // Find events that match the pattern
+            let matchingEvents = events.filter { event in
+                let titleMatches = event.title.lowercased().contains(patternLower)
+                
+                // Check if pattern includes date information
+                if patternLower.contains("tomorrow") {
+                    let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
+                    let eventDate = Calendar.current.startOfDay(for: event.startTime)
+                    let tomorrowDate = Calendar.current.startOfDay(for: tomorrow)
+                    return titleMatches && eventDate == tomorrowDate
+                } else if patternLower.contains("today") {
+                    let today = Calendar.current.startOfDay(for: Date())
+                    let eventDate = Calendar.current.startOfDay(for: event.startTime)
+                    return titleMatches && eventDate == today
+                } else if patternLower.contains("friday") {
+                    let weekday = Calendar.current.component(.weekday, from: event.startTime)
+                    return titleMatches && weekday == 6 // Friday
+                } else if patternLower.contains("monday") {
+                    let weekday = Calendar.current.component(.weekday, from: event.startTime)
+                    return titleMatches && weekday == 2 // Monday
+                } else if patternLower.contains("tuesday") {
+                    let weekday = Calendar.current.component(.weekday, from: event.startTime)
+                    return titleMatches && weekday == 3 // Tuesday
+                } else if patternLower.contains("wednesday") {
+                    let weekday = Calendar.current.component(.weekday, from: event.startTime)
+                    return titleMatches && weekday == 4 // Wednesday
+                } else if patternLower.contains("thursday") {
+                    let weekday = Calendar.current.component(.weekday, from: event.startTime)
+                    return titleMatches && weekday == 5 // Thursday
+                } else if patternLower.contains("saturday") {
+                    let weekday = Calendar.current.component(.weekday, from: event.startTime)
+                    return titleMatches && weekday == 7 // Saturday
+                } else if patternLower.contains("sunday") {
+                    let weekday = Calendar.current.component(.weekday, from: event.startTime)
+                    return titleMatches && weekday == 1 // Sunday
+                }
+                
+                return titleMatches
+            }
+            
+            eventsToRemove.append(contentsOf: matchingEvents)
+        }
+        
+        // Remove duplicates
+        let uniqueEvents = Array(Set(eventsToRemove.map { $0.id })).compactMap { id in
+            eventsToRemove.first { $0.id == id }
+        }
+        
+        return uniqueEvents
     }
 }

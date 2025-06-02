@@ -12,6 +12,7 @@
 		508F8FD52DED0FF1008FB70A /* DirectGPT4Calendar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 508F8FD42DED0FF1008FB70A /* DirectGPT4Calendar.swift */; };
 		508F8FD72DEDC94E008FB70A /* FirebaseEventService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 508F8FD62DEDC94E008FB70A /* FirebaseEventService.swift */; };
 		508F8FD92DEDC9DB008FB70A /* MigrationHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 508F8FD82DEDC9DB008FB70A /* MigrationHelper.swift */; };
+		508F8FDB2DEDD17F008FB70A /* EventDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 508F8FDA2DEDD17F008FB70A /* EventDetailView.swift */; };
 		509C888B2DE28745004AEA54 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 509C888A2DE28745004AEA54 /* FirebaseAuth */; };
 		509C888D2DE28745004AEA54 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 509C888C2DE28745004AEA54 /* FirebaseFirestore */; };
 		509C88992DE2897B004AEA54 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 509C88952DE2897B004AEA54 /* ContentView.swift */; };
@@ -55,6 +56,7 @@
 		508F8FD42DED0FF1008FB70A /* DirectGPT4Calendar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectGPT4Calendar.swift; sourceTree = "<group>"; };
 		508F8FD62DEDC94E008FB70A /* FirebaseEventService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseEventService.swift; sourceTree = "<group>"; };
 		508F8FD82DEDC9DB008FB70A /* MigrationHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationHelper.swift; sourceTree = "<group>"; };
+		508F8FDA2DEDD17F008FB70A /* EventDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventDetailView.swift; sourceTree = "<group>"; };
 		509C88912DE2897B004AEA54 /* SwiftCalendar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SwiftCalendar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		509C88922DE2897B004AEA54 /* SwiftCalendarTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwiftCalendarTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		509C88932DE2897B004AEA54 /* SwiftCalendarUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwiftCalendarUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -157,6 +159,7 @@
 		509C889E2DE28A2E004AEA54 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				508F8FDA2DEDD17F008FB70A /* EventDetailView.swift */,
 				50C88B792DEB51570036AF4B /* WeekView.swift */,
 				50C88B772DEB43110036AF4B /* DayDetailView.swift */,
 				50D5870A2DE93FF70039751C /* ChatView.swift */,
@@ -348,6 +351,7 @@
 				50C88B782DEB43110036AF4B /* DayDetailView.swift in Sources */,
 				509C889A2DE2897B004AEA54 /* SwiftCalendarApp.swift in Sources */,
 				508F8FD92DEDC9DB008FB70A /* MigrationHelper.swift in Sources */,
+				508F8FDB2DEDD17F008FB70A /* EventDetailView.swift in Sources */,
 				509C88AA2DE28B93004AEA54 /* AuthenticationView.swift in Sources */,
 				50D587092DE93A750039751C /* OpenAIService.swift in Sources */,
 				508F8FD52DED0FF1008FB70A /* DirectGPT4Calendar.swift in Sources */,

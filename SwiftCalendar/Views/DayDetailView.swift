@@ -2,7 +2,7 @@
 //  DayDetailView.swift
 //  SwiftCalendar
 //
-//  Hour-by-hour view of a specific day
+//  Hour-by-hour view of a specific day (Updated)
 //
 
 import SwiftUI
@@ -12,7 +12,7 @@ struct DayDetailView: View {
     @ObservedObject var scheduleManager: ScheduleManager
     @Environment(\.dismiss) private var dismiss
     @State private var selectedEvent: ScheduleEvent?
-    @State private var showingDeleteAlert = false
+    @State private var showingEventDetail = false
     
     let hours = Array(0...23) // 12 AM to 11 PM
     let hourHeight: CGFloat = 60 // Height for each hour
@@ -61,7 +61,7 @@ struct DayDetailView: View {
                                 hourHeight: hourHeight,
                                 onTap: {
                                     selectedEvent = event
-                                    showingDeleteAlert = true
+                                    showingEventDetail = true
                                 }
                             )
                         }
@@ -78,16 +78,9 @@ struct DayDetailView: View {
                     }
                 }
             }
-            .alert("Delete Event?", isPresented: $showingDeleteAlert) {
-                Button("Delete", role: .destructive) {
-                    if let event = selectedEvent {
-                        scheduleManager.deleteEvent(event)
-                    }
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
+            .sheet(isPresented: $showingEventDetail) {
                 if let event = selectedEvent {
-                    Text("Are you sure you want to delete '\(event.title)'?")
+                    EventDetailView(event: event, scheduleManager: scheduleManager)
                 }
             }
         }

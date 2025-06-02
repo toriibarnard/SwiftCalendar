@@ -2,7 +2,7 @@
 //  ChatViewModel.swift
 //  SwiftCalendar
 //
-//  Direct GPT-4 approach - works like ChatGPT web
+//  Updated to handle both additions and deletions properly
 //
 
 import Foundation
@@ -27,7 +27,7 @@ class ChatViewModel: ObservableObject {
     
     init() {
         messages.append(ChatMessage(
-            content: "Hey! I'm Ty. I can manage your calendar just like ChatGPT. Try:\n• \"I work Friday and Wednesday nights at 5:30pm until 10:30pm\"\n• \"I need to go to the gym 6 times this week\"\n• \"Add dentist June 4th at noon\"",
+            content: "Hey! I'm Ty. I can manage your calendar just like ChatGPT. Try:\n• \"I work Friday and Wednesday nights at 5:30pm until 10:30pm\"\n• \"I need to go to the gym 6 times this week\"\n• \"Add dentist June 4th at noon\"\n• \"Delete work tomorrow\"\n• \"Cancel my gym session\"",
             isUser: false,
             timestamp: Date()
         ))
@@ -51,23 +51,52 @@ class ChatViewModel: ObservableObject {
         Task {
             do {
                 // Get GPT-4 to process the request
-                let (events, message) = try await gpt4.processRequest(userMessage, existingEvents: scheduleManager.events)
+                let (action, message) = try await gpt4.processRequest(userMessage, existingEvents: scheduleManager.events)
                 
-                // Add events to calendar
-                for event in events {
-                    if event.isRecurring && !event.recurrenceDays.isEmpty {
-                        // Create recurring events
-                        await createRecurringEvents(event, scheduleManager: scheduleManager)
-                    } else {
-                        // Single event
-                        let category = EventCategory(rawValue: event.category) ?? .personal
-                        scheduleManager.addAIEvent(
-                            at: event.date,
-                            title: event.title,
-                            category: category,
-                            duration: event.duration
-                        )
+                // Handle the action
+                switch action {
+                case .addEvents(let events):
+                    // Add events to calendar
+                    for event in events {
+                        if event.isRecurring && !event.recurrenceDays.isEmpty {
+                            // Create recurring events
+                            await createRecurringEvents(event, scheduleManager: scheduleManager)
+                        } else {
+                            // Single event
+                            let category = EventCategory(rawValue: event.category) ?? .personal
+                            scheduleManager.addAIEvent(
+                                at: event.date,
+                                title: event.title,
+                                category: category,
+                                duration: event.duration
+                            )
+                        }
                     }
+                    
+                case .removeEvents(let patterns):
+                    // Find and remove matching events
+                    let eventsToRemove = gpt4.findEventsToRemove(patterns, from: scheduleManager.events)
+                    
+                    print("🗑️ Found \(eventsToRemove.count) events to remove for patterns: \(patterns)")
+                    
+                    for event in eventsToRemove {
+                        scheduleManager.deleteEvent(event)
+                        print("🗑️ Deleted: \(event.title) on \(event.startTime)")
+                    }
+                    
+                    if eventsToRemove.isEmpty {
+                        messages.append(ChatMessage(
+                            content: "I couldn't find any events matching '\(patterns.joined(separator: ", "))'. Try being more specific about what you want to remove.",
+                            isUser: false,
+                            timestamp: Date()
+                        ))
+                        isLoading = false
+                        return
+                    }
+                    
+                case .showMessage(_):
+                    // Just show the message, no action needed
+                    break
                 }
                 
                 // Show response

@@ -2,15 +2,7 @@
 //  WeekView.swift
 //  SwiftCalendar
 //
-//  Created by Torii Barnard on 2025-05-31.
-//
-
-
-//
-//  WeekView.swift
-//  SwiftCalendar
-//
-//  Week view showing 7 days with hourly time slots
+//  Updated to use EventDetailView
 //
 
 import SwiftUI
@@ -18,6 +10,8 @@ import SwiftUI
 struct WeekView: View {
     @ObservedObject var scheduleManager: ScheduleManager
     @State private var currentWeek = Date()
+    @State private var selectedEvent: ScheduleEvent?
+    @State private var showingEventDetail = false
     @Environment(\.dismiss) private var dismiss
     
     let hours = Array(6...22) // 6 AM to 10 PM for a more compact view
@@ -55,7 +49,11 @@ struct WeekView: View {
                                     dayIndex: dayIndex(for: day),
                                     hourHeight: hourHeight,
                                     totalDays: weekDays.count,
-                                    baseHour: hours.first ?? 6
+                                    baseHour: hours.first ?? 6,
+                                    onTap: {
+                                        selectedEvent = event
+                                        showingEventDetail = true
+                                    }
                                 )
                             }
                         }
@@ -69,6 +67,11 @@ struct WeekView: View {
                     Button("Done") {
                         dismiss()
                     }
+                }
+            }
+            .sheet(isPresented: $showingEventDetail) {
+                if let event = selectedEvent {
+                    EventDetailView(event: event, scheduleManager: scheduleManager)
                 }
             }
         }
@@ -208,6 +211,7 @@ struct WeekEventBlock: View {
     let hourHeight: CGFloat
     let totalDays: Int
     let baseHour: Int
+    let onTap: () -> Void
     
     private var timeFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -269,6 +273,7 @@ struct WeekEventBlock: View {
                 .stroke(event.isAIGenerated ? Color.white : Color.clear, lineWidth: 1)
         )
         .offset(x: leftOffset, y: topOffset)
+        .onTapGesture(perform: onTap)
     }
     
     func categoryColor(_ category: EventCategory) -> Color {

@@ -17,3 +17,14 @@ struct ScheduleEvent: Identifiable {
     var isFixed: Bool
     var isAIGenerated: Bool
 }
+
+// Add this extension to make ScheduleEvent hashable for Set operations
+extension ScheduleEvent: Hashable {
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    
+    static func == (lhs: ScheduleEvent, rhs: ScheduleEvent) -> Bool {
+        return lhs.id == rhs.id
+    }
+}
