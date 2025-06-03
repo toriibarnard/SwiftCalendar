@@ -2,7 +2,7 @@
 //  ChatViewModel.swift
 //  SwiftCalendar
 //
-//  Redesigned for Ty's new vision: Schedule Optimization First
+//  Updated to support multiple suggestion selection without clearing
 //
 
 import Foundation
@@ -31,6 +31,7 @@ class ChatViewModel: ObservableObject {
     @Published var showingConfirmation = false
     @Published var confirmationMessage = ""
     @Published var userPreferences = UserSchedulePreferences()
+    @Published var selectedSuggestionIds: Set<UUID> = [] // NEW: Track selected suggestions
     
     private let intelligentTy = IntelligentTyAI()
     weak var scheduleManager: ScheduleManager?
@@ -70,6 +71,9 @@ class ChatViewModel: ObservableObject {
         
         let userMessage = inputText
         inputText = ""
+        
+        // UPDATED: Clear selected suggestions when starting new query
+        selectedSuggestionIds.removeAll()
         
         messages.append(ChatMessage(
             content: userMessage,
@@ -176,13 +180,21 @@ class ChatViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Schedule Suggestion Selection
+    // MARK: - UPDATED: Schedule Suggestion Selection
     
     func selectScheduleSuggestion(_ suggestion: ScheduleSuggestion) {
         guard let task = pendingOptimization,
               let scheduleManager = scheduleManager else { return }
         
+        // Check if already selected
+        if selectedSuggestionIds.contains(suggestion.id) {
+            return // Already selected, do nothing
+        }
+        
         print("✅ User selected suggestion: \(suggestion.taskTitle) at \(suggestion.timeSlot.startTime)")
+        
+        // Add to selected set
+        selectedSuggestionIds.insert(suggestion.id)
         
         // Create the event
         scheduleManager.addAIEvent(
@@ -192,22 +204,21 @@ class ChatViewModel: ObservableObject {
             duration: task.duration
         )
         
-        // Provide confirmation
-        let timeFormatter = DateFormatter()
-        timeFormatter.dateFormat = "EEEE h:mm a"
-        let timeString = timeFormatter.string(from: suggestion.timeSlot.startTime)
-        
-        messages.append(ChatMessage(
-            content: "Perfect! I've scheduled \(task.title) for \(timeString). \(suggestion.timeSlot.reasoning)",
-            isUser: false,
-            timestamp: Date(),
-            suggestions: nil
-        ))
-        
         // Learn from this selection
         learnFromSelection(task: task, selectedSlot: suggestion.timeSlot)
         
-        // Clear pending
+        // NO MESSAGE SENT - just visual feedback via UI update
+        print("📅 Event scheduled, UI will show checkmark")
+    }
+    
+    // NEW: Check if suggestion is selected
+    func isSuggestionSelected(_ suggestion: ScheduleSuggestion) -> Bool {
+        return selectedSuggestionIds.contains(suggestion.id)
+    }
+    
+    // NEW: Clear all selections (could be used with a "Clear" button)
+    func clearSelections() {
+        selectedSuggestionIds.removeAll()
         pendingOptimization = nil
         pendingSuggestions = []
     }
@@ -309,6 +320,7 @@ class ChatViewModel: ObservableObject {
     
     func clearConversation() {
         intelligentTy.clearConversationHistory()
+        selectedSuggestionIds.removeAll() // NEW: Clear selections too
         messages = [
             ChatMessage(
                 content: "Conversation cleared! What would you like help optimizing today?",

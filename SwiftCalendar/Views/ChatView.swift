@@ -2,7 +2,7 @@
 //  ChatView.swift
 //  SwiftCalendar
 //
-//  Redesigned to showcase Ty's schedule optimization abilities
+//  Updated to show selection state for multiple suggestions
 //
 
 import SwiftUI
@@ -26,6 +26,7 @@ struct ChatView: View {
                             ForEach(viewModel.messages) { message in
                                 MessageBubbleView(
                                     message: message,
+                                    viewModel: viewModel, // NEW: Pass viewModel for selection state
                                     onSuggestionTap: { suggestion in
                                         viewModel.selectScheduleSuggestion(suggestion)
                                     }
@@ -90,8 +91,13 @@ struct ChatView: View {
                     .font(.caption)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Calendar") {
-                        // Dismiss to go back to calendar
+                    // NEW: Show clear selections button when there are selections
+                    if !viewModel.selectedSuggestionIds.isEmpty {
+                        Button("Clear Selections") {
+                            viewModel.clearSelections()
+                        }
+                        .font(.caption)
+                        .foregroundColor(.orange)
                     }
                 }
             }
@@ -114,6 +120,7 @@ struct ChatView: View {
 
 struct MessageBubbleView: View {
     let message: ChatMessage
+    let viewModel: ChatViewModel // NEW: Access to selection state
     let onSuggestionTap: (ScheduleSuggestion) -> Void
     
     var body: some View {
@@ -134,6 +141,7 @@ struct MessageBubbleView: View {
                 if let suggestions = message.suggestions, !suggestions.isEmpty {
                     ScheduleSuggestionsView(
                         suggestions: suggestions,
+                        viewModel: viewModel, // NEW: Pass viewModel
                         onTap: onSuggestionTap
                     )
                 }
@@ -151,6 +159,7 @@ struct MessageBubbleView: View {
 
 struct ScheduleSuggestionsView: View {
     let suggestions: [ScheduleSuggestion]
+    let viewModel: ChatViewModel // NEW: Access to selection state
     let onTap: (ScheduleSuggestion) -> Void
     
     var body: some View {
@@ -159,6 +168,7 @@ struct ScheduleSuggestionsView: View {
                 ScheduleSuggestionCard(
                     suggestion: suggestion,
                     rank: index + 1,
+                    isSelected: viewModel.isSuggestionSelected(suggestion), // NEW: Pass selection state
                     onTap: { onTap(suggestion) }
                 )
             }
@@ -170,6 +180,7 @@ struct ScheduleSuggestionsView: View {
 struct ScheduleSuggestionCard: View {
     let suggestion: ScheduleSuggestion
     let rank: Int
+    let isSelected: Bool // NEW: Selection state
     let onTap: () -> Void
     
     private var timeFormatter: DateFormatter {
@@ -179,6 +190,7 @@ struct ScheduleSuggestionCard: View {
     }
     
     private var scoreColor: Color {
+        if isSelected { return .green } // NEW: Green when selected
         let score = suggestion.timeSlot.score
         if score >= 0.8 { return .green }
         if score >= 0.6 { return .orange }
@@ -202,15 +214,24 @@ struct ScheduleSuggestionCard: View {
                     Text(suggestion.timeSlot.startTime, formatter: timeFormatter)
                         .font(.headline)
                         .fontWeight(.semibold)
+                        .foregroundColor(isSelected ? .green : .primary) // NEW: Green text when selected
                     
                     Spacer()
                     
-                    // Score indicator
-                    HStack(spacing: 2) {
-                        ForEach(0..<5) { index in
-                            Circle()
-                                .fill(index < Int(suggestion.timeSlot.score * 5) ? scoreColor : Color.gray.opacity(0.3))
-                                .frame(width: 6, height: 6)
+                    // Score indicator or checkmark
+                    if isSelected {
+                        // NEW: Show checkmark when selected
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .font(.title2)
+                    } else {
+                        // Original score indicator
+                        HStack(spacing: 2) {
+                            ForEach(0..<5) { index in
+                                Circle()
+                                    .fill(index < Int(suggestion.timeSlot.score * 5) ? scoreColor : Color.gray.opacity(0.3))
+                                    .frame(width: 6, height: 6)
+                            }
                         }
                     }
                 }
@@ -223,26 +244,39 @@ struct ScheduleSuggestionCard: View {
                 
                 // Action hint
                 HStack {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundColor(.blue)
-                        .font(.caption)
-                    Text("Tap to schedule")
-                        .font(.caption)
-                        .foregroundColor(.blue)
+                    if isSelected {
+                        // NEW: Show scheduled status
+                        Image(systemName: "calendar.badge.checkmark")
+                            .foregroundColor(.green)
+                            .font(.caption)
+                        Text("Scheduled ✓")
+                            .font(.caption)
+                            .foregroundColor(.green)
+                            .fontWeight(.medium)
+                    } else {
+                        // Original tap to schedule
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundColor(.blue)
+                            .font(.caption)
+                        Text("Tap to schedule")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                    }
                     Spacer()
                 }
             }
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(UIColor.secondarySystemBackground))
+                    .fill(isSelected ? Color.green.opacity(0.1) : Color(UIColor.secondarySystemBackground)) // NEW: Light green background when selected
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(scoreColor.opacity(0.3), lineWidth: 1)
+                            .stroke(scoreColor.opacity(isSelected ? 0.6 : 0.3), lineWidth: isSelected ? 2 : 1) // NEW: Thicker border when selected
                     )
             )
         }
         .buttonStyle(PlainButtonStyle())
+        .disabled(isSelected) // NEW: Disable tap when already selected
     }
 }
 
