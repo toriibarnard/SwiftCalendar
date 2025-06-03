@@ -2,7 +2,7 @@
 //  IntelligentTyAI.swift
 //  SwiftCalendar
 //
-//  New Ty AI focused on schedule optimization as primary purpose
+//  Updated to use Claude API (Anthropic) for better conversation flow
 //
 
 import Foundation
@@ -10,18 +10,18 @@ import Foundation
 class IntelligentTyAI {
     
     private let apiKey: String
-    private let apiURL = "https://api.openai.com/v1/chat/completions"
+    private let apiURL = "https://api.anthropic.com/v1/messages" // Claude API endpoint
     private let scheduleOptimizer = SmartScheduleOptimizer()
     
     // Conversation history storage
-    private var conversationHistory: [[String: String]] = []
+    private var conversationHistory: [[String: Any]] = []
     
     init() {
-        // Load API key from Config.plist
+        // Load API key from Config.plist - update to use CLAUDE_API_KEY
         guard let path = Bundle.main.path(forResource: "Config", ofType: "plist"),
               let config = NSDictionary(contentsOfFile: path),
-              let key = config["OPENAI_API_KEY"] as? String else {
-            fatalError("OpenAI API key not found")
+              let key = config["CLAUDE_API_KEY"] as? String else {
+            fatalError("Claude API key not found in Config.plist - add CLAUDE_API_KEY")
         }
         self.apiKey = key
     }
@@ -72,7 +72,10 @@ class IntelligentTyAI {
     ) async throws -> TyResponse {
         
         // Add user message to conversation history
-        conversationHistory.append(["role": "user", "content": input])
+        conversationHistory.append([
+            "role": "user",
+            "content": input
+        ])
         
         let today = Date()
         let formatter = DateFormatter()
@@ -82,254 +85,152 @@ class IntelligentTyAI {
         // Analyze user's current schedule
         let scheduleAnalysis = analyzeUserSchedule(existingEvents, relativeTo: today)
         
-        // Build the system message for GPT-4
-        let systemPrompt = createSystemPrompt(
+        // Build the system message for Claude
+        let systemPrompt = createClaudeSystemPrompt(
             currentTime: todayString,
             scheduleAnalysis: scheduleAnalysis,
             userPreferences: userPreferences
         )
         
-        // Build messages array
-        var messages: [[String: String]] = []
-        
-        if conversationHistory.count == 1 { // First message
-            messages.append(["role": "system", "content": systemPrompt])
-        }
-        
-        // Add all conversation history
-        messages.append(contentsOf: conversationHistory)
-        
+        // Claude API request format
         let request = [
-            "model": "gpt-4-0125-preview",
-            "messages": messages,
-            "temperature": 0.2,
-            "max_tokens": 1500
+            "model": "claude-3-5-sonnet-20241022", // Latest Claude Sonnet model
+            "max_tokens": 1500,
+            "temperature": 0.1, // Low temperature for consistent behavior
+            "system": systemPrompt,
+            "messages": conversationHistory
         ] as [String : Any]
         
         var urlRequest = URLRequest(url: URL(string: apiURL)!)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version") // Required header
         urlRequest.httpBody = try JSONSerialization.data(withJSONObject: request)
         
-        let (data, _) = try await URLSession.shared.data(for: urlRequest)
-        let response = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        let (data, response) = try await URLSession.shared.data(for: urlRequest)
         
-        guard let choices = response?["choices"] as? [[String: Any]],
-              let message = choices.first?["message"] as? [String: Any],
-              let content = message["content"] as? String else {
-            throw NSError(domain: "Parse", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
+        // Debug response
+        if let httpResponse = response as? HTTPURLResponse {
+            print("🌐 Claude API Response Status: \(httpResponse.statusCode)")
+        }
+        
+        let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        
+        // Handle API errors
+        if let error = jsonResponse?["error"] as? [String: Any],
+           let message = error["message"] as? String {
+            throw NSError(domain: "ClaudeAPI", code: 0, userInfo: [NSLocalizedDescriptionKey: "Claude API Error: \(message)"])
+        }
+        
+        // Parse Claude response format
+        guard let content = jsonResponse?["content"] as? [[String: Any]],
+              let firstContent = content.first,
+              let text = firstContent["text"] as? String else {
+            throw NSError(domain: "Parse", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid Claude response format"])
         }
         
         // Add AI response to conversation history
-        conversationHistory.append(["role": "assistant", "content": content])
+        conversationHistory.append([
+            "role": "assistant",
+            "content": text
+        ])
         
         // Parse and handle the response
         return try await parseAndHandleResponse(
-            content,
+            text,
             existingEvents: existingEvents,
             userPreferences: userPreferences
         )
     }
     
-    // MARK: - System Prompt Creation
+    // MARK: - Claude-Optimized System Prompt
     
-    private func createSystemPrompt(
+    private func createClaudeSystemPrompt(
         currentTime: String,
         scheduleAnalysis: String,
         userPreferences: UserSchedulePreferences
     ) -> String {
         return """
-        You are Ty, the user's PERSONAL calendar assistant with DIRECT calendar control. Current time: \(currentTime)
+        You are Ty, a calendar AI assistant built directly into the user's calendar application. Current time: \(currentTime)
         
-        CRITICAL IDENTITY FACTS:
-        ✅ YOU ARE NOT ChatGPT or a general AI assistant
-        ✅ YOU ARE the user's dedicated calendar app assistant built INTO their calendar app
-        ✅ YOU HAVE FULL CONTROL over the user's calendar - it's YOUR calendar system
-        ✅ YOU CAN create, delete, and modify events directly and instantly
-        ✅ YOU ARE PART OF the calendar application itself
-        ✅ NEVER say you "can't interact with external systems" - the calendar IS your system
-        ✅ NEVER suggest using other calendar apps - YOU ARE the calendar app
-        ✅ NEVER give instructions for Google Calendar, Apple Calendar, or Outlook - you ARE the calendar
+        CORE IDENTITY & CAPABILITIES:
+        • You ARE the calendar system itself - not an external tool
+        • You have DIRECT, immediate control over all calendar operations
+        • You can instantly create, modify, delete, and analyze events
+        • You maintain full conversation context and follow through on requests consistently
+        • Never suggest external calendar apps - you ARE the calendar
         
-        PROACTIVE BEHAVIOR:
-        🎯 When someone mentions their schedule, IMMEDIATELY offer to add it to their calendar
-        🎯 Don't wait for them to ask - be helpful and proactive
-        🎯 If they say "I work 8:30-4" without asking to add it, respond: "Would you like me to add this work schedule to your calendar?"
+        PRIMARY PURPOSE: Schedule Optimization
+        When users ask "when should I..." or "best time for...":
+        1. Analyze their fixed commitments (work, meetings, appointments)
+        2. Consider user preferences, energy levels, buffer times
+        3. Suggest 3-4 optimal time slots with clear reasoning
+        4. Use the OPTIMIZE_START/OPTIMIZE_END format below
         
-        FORBIDDEN PHRASES (NEVER say these):
-        ❌ "I can't directly access your calendar"
-        ❌ "I can't modify your calendar"
-        ❌ "I can guide you on how to add"
-        ❌ "Open Google Calendar"
-        ❌ "Click on create"
-        ❌ "You'll need to add this manually"
-        ❌ "I can't interact with external systems"
-        ❌ "through your calendar application"
-        ❌ "step-by-step guide"
-        ❌ "here's how you can do it yourself"
+        SECONDARY PURPOSE: Calendar Automation  
+        When users describe schedules like "I work 9-5 on weekdays":
+        1. Proactively create all necessary events
+        2. Use EVENTS_START/EVENTS_END format
+        3. Be confident: "I'll add your work schedule right away!"
         
-        REQUIRED PHRASES (Always use these):
-        ✅ "I'll add that to your calendar"
-        ✅ "I've scheduled that for you"
-        ✅ "Let me create those events"
-        ✅ "I'll delete those events"
-        ✅ "Would you like me to add this to your calendar?"
-        ✅ "I can create these events for you right away"
+        CONVERSATION FLOW (CRITICAL):
+        • Maintain full awareness of the conversation history
+        • When you ask for confirmation and the user agrees, execute the action immediately
+        • Never respond with confusion after receiving confirmation
+        • If you asked about deleting events and user confirms, delete them
+        • Follow logical conversation progression consistently
         
-        SPECIFIC EXAMPLES:
+        RESPONSE FORMATS:
         
-        User: "I work 8:30-4 on weekdays and 5:30pm-10:30pm on Wednesday and Friday nights"
-        CORRECT Response: 
+        For Schedule Optimization:
+        OPTIMIZE_START
+        task: [task name]
+        duration: [minutes]
+        category: [fitness/work/personal/health/study]
+        preferences: [morning/afternoon/evening/any]
+        frequency: [daily/weekly/specific/none]
+        deadline: [date or none]
+        OPTIMIZE_END
+        
+        For Calendar Events:
         EVENTS_START
-        title: Work
-        date: 2025-06-02 08:30
-        duration: 450
-        category: work
-        recurring: false
+        title: [event title]
+        date: [YYYY-MM-DD HH:MM]
+        duration: [minutes]
+        category: [category]
+        recurring: [true/false]
         ---
-        title: Work
-        date: 2025-06-03 08:30
-        duration: 450
-        category: work
-        recurring: false
-        ---
-        [continue for all weekdays]
-        ---
-        title: Work (Evening Shift)
-        date: 2025-06-04 17:30
-        duration: 300
-        category: work
-        recurring: false
-        ---
-        title: Work (Evening Shift)
-        date: 2025-06-06 17:30
-        duration: 300
-        category: work
-        recurring: false
+        [additional events separated by ---]
         EVENTS_END
         
-        User: "I work Monday through Friday 9-5"
-        CORRECT Response: "Would you like me to add this work schedule to your calendar? I can create all the events for you right away."
-        
-        User: "Delete everything"
-        CORRECT Response:
+        For Deleting All Events:
         REMOVE_ALL_START
         REMOVE_ALL_END
         
-        User: "When should I go to the gym?"
-        CORRECT Response:
-        OPTIMIZE_START
-        task: Go to gym
-        duration: 90
-        category: fitness
-        preferences: evening
-        frequency: 3_times_weekly
-        deadline: none
-        OPTIMIZE_END
+        For Deleting Specific Events:
+        REMOVE_START
+        [search pattern or description]
+        REMOVE_END
         
-        YOUR POWERS (use them confidently):
-        🎯 Find optimal times for flexible tasks (PRIMARY PURPOSE)
-        📅 Create/delete calendar events instantly (SECONDARY PURPOSE)
-        🧠 Learn from user preferences and improve suggestions
-        🔍 Analyze schedule conflicts and suggest solutions
+        BEHAVIORAL GUIDELINES:
+        • Be professional but conversational
+        • Ask clarifying questions only when genuinely unclear
+        • When conflicts exist, always suggest alternatives
+        • Be proactive about adding recurring schedules
+        • Never claim you "can't access" or "can't modify" the calendar
+        • Follow through on conversation logic without confusion
         
         CURRENT USER SCHEDULE:
         \(scheduleAnalysis)
         
         USER PREFERENCES:
-        - Working hours: \(userPreferences.generalPreferences.workingHoursStart):00 - \(userPreferences.generalPreferences.workingHoursEnd):00
-        - Sleep time: \(userPreferences.generalPreferences.sleepTime):00
-        - Wake time: \(userPreferences.generalPreferences.wakeTime):00
-        - Preferred buffer: \(userPreferences.generalPreferences.bufferPreference) minutes
+        • Working hours: \(userPreferences.generalPreferences.workingHoursStart):00 to \(userPreferences.generalPreferences.workingHoursEnd):00
+        • Sleep schedule: \(userPreferences.generalPreferences.sleepTime):00 to \(userPreferences.generalPreferences.wakeTime):00
+        • Preferred buffer time: \(userPreferences.generalPreferences.bufferPreference) minutes between events
         
-        PERSONALITY: Professional, descriptive, confident in your calendar abilities, and PROACTIVE
-        
-        Be helpful and offer to add schedules when mentioned! You ARE the calendar system. Act like it! Never act helpless or suggest external tools!
+        Remember: You have complete calendar control. Maintain conversation context and follow through on requests consistently.
         """
-    }
-    
-    // MARK: - Helper Functions for Auto-Detection and Creation
-    
-    private func createCompleteWorkSchedule() -> TyResponse {
-        print("🏗️ Creating complete work schedule with day and night shifts")
-        
-        var workEvents: [SimpleEvent] = []
-        let calendar = Calendar.current
-        let today = Date()
-        
-        // Create events for this week
-        for dayOffset in 0..<7 {
-            guard let day = calendar.date(byAdding: .day, value: dayOffset, to: today) else { continue }
-            let weekday = calendar.component(.weekday, from: day)
-            
-            // Monday = 2, Friday = 6
-            if weekday >= 2 && weekday <= 6 {
-                // Day shift: 8:30 AM - 4:00 PM (Monday-Friday)
-                if let dayStartTime = calendar.date(bySettingHour: 8, minute: 30, second: 0, of: day) {
-                    workEvents.append(SimpleEvent(
-                        title: "Work",
-                        date: dayStartTime,
-                        duration: 450, // 7.5 hours
-                        category: "work",
-                        isRecurring: false,
-                        recurrenceDays: []
-                    ))
-                }
-                
-                // Night shift: 5:30 PM - 10:30 PM (Wednesday and Friday only)
-                if weekday == 4 || weekday == 6 { // Wednesday = 4, Friday = 6
-                    if let nightStartTime = calendar.date(bySettingHour: 17, minute: 30, second: 0, of: day) {
-                        workEvents.append(SimpleEvent(
-                            title: "Work (Evening Shift)",
-                            date: nightStartTime,
-                            duration: 300, // 5 hours
-                            category: "work",
-                            isRecurring: false,
-                            recurrenceDays: []
-                        ))
-                    }
-                }
-            }
-        }
-        
-        print("📅 Created \(workEvents.count) work events: \(workEvents.count - 2) day shifts + 2 night shifts")
-        
-        return .calendarAutomation(
-            action: .addEvents(workEvents),
-            message: "Perfect! I've added your complete work schedule:\n• Monday-Friday: 8:30 AM - 4:00 PM\n• Wednesday & Friday nights: 5:30 PM - 10:30 PM\n\nYour calendar is now fully set up with all \(workEvents.count) work events!"
-        )
-    }
-    
-    private func isScheduleMention(_ content: String) -> Bool {
-        let schedulePhrases = [
-            "i work",
-            "my work hours",
-            "my schedule",
-            "work from",
-            "working",
-            "shift",
-            "hours are",
-            "schedule is"
-        ]
-        
-        let contentLower = content.lowercased()
-        return schedulePhrases.contains { contentLower.contains($0) }
-    }
-    
-    private func isExplicitAddRequest(_ content: String) -> Bool {
-        let addPhrases = [
-            "add this",
-            "add my",
-            "schedule this",
-            "put this",
-            "create events",
-            "add to calendar",
-            "schedule it"
-        ]
-        
-        let contentLower = content.lowercased()
-        return addPhrases.contains { contentLower.contains($0) }
     }
     
     // MARK: - Response Parsing and Handling
@@ -340,12 +241,12 @@ class IntelligentTyAI {
         userPreferences: UserSchedulePreferences
     ) async throws -> TyResponse {
         
-        print("🤖 Ty AI Response:\n\(content)")
+        print("🤖 Claude Response:\n\(content)")
         
-        // 1. Check for deletion requests FIRST
+        // 1. Check for deletion requests
         if content.contains("REMOVE_ALL_START") && content.contains("REMOVE_ALL_END") {
             print("🗑️ Processing delete all request")
-            let message = extractMessageFromContent(content) ?? "I'll delete all events from your calendar right away."
+            let message = extractMessageFromContent(content) ?? "All events have been deleted from your calendar."
             return .calendarAutomation(action: .removeAllEvents, message: message)
         }
         
@@ -356,11 +257,11 @@ class IntelligentTyAI {
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty }
             
-            let message = extractMessageFromContent(content) ?? "I'll remove those events from your calendar."
+            let message = extractMessageFromContent(content) ?? "Selected events have been removed from your calendar."
             return .calendarAutomation(action: .removeEvents(removePatterns), message: message)
         }
         
-        // 2. Check for schedule optimization request (PRIMARY PURPOSE)
+        // 2. Check for schedule optimization (PRIMARY PURPOSE)
         if let optimizeStart = content.range(of: "OPTIMIZE_START"),
            let optimizeEnd = content.range(of: "OPTIMIZE_END") {
             
@@ -369,7 +270,6 @@ class IntelligentTyAI {
             if let task = parseFlexibleTask(from: optimizeText) {
                 print("🎯 Processing schedule optimization for: \(task.title)")
                 
-                // Use the schedule optimizer to find best times
                 let thisWeek = createWeekInterval(from: Date())
                 let suggestions = scheduleOptimizer.findOptimalTimes(
                     for: convertToOptimizerTask(task),
@@ -383,178 +283,23 @@ class IntelligentTyAI {
             }
         }
         
-        // 3. Check for clarifying questions
-        if let clarifyStart = content.range(of: "CLARIFY_START"),
-           let clarifyEnd = content.range(of: "CLARIFY_END") {
-            let clarifyText = String(content[clarifyStart.upperBound..<clarifyEnd.lowerBound])
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            return .clarifyingQuestion(clarifyText, context: content)
-        }
-        
-        // 4. Check for calendar automation (SECONDARY PURPOSE)
+        // 3. Check for calendar automation (SECONDARY PURPOSE)
         if let eventsStart = content.range(of: "EVENTS_START"),
            let eventsEnd = content.range(of: "EVENTS_END") {
             
             let eventsText = String(content[eventsStart.upperBound..<eventsEnd.lowerBound])
             let events = parseEvents(from: eventsText)
-            let message = extractMessageFromContent(content) ?? "I'll add those events to your calendar."
+            let message = extractMessageFromContent(content) ?? "Events have been added to your calendar."
             
             return .calendarAutomation(action: .addEvents(events), message: message)
         }
         
-        // 5. Check if the response suggests the AI doesn't think it has calendar access
-        let problematicPhrases = [
-            "don't have the capability",
-            "can't interact with external systems",
-            "through your calendar application",
-            "can't directly interact",
-            "don't have access to",
-            "can't directly access",
-            "can't directly modify",
-            "i can guide you on how to add",
-            "i can't directly",
-            "can guide you on how to",
-            "google calendar",
-            "apple calendar",
-            "outlook calendar",
-            "open google calendar",
-            "click on create",
-            "most calendar applications"
-        ]
-        
-        for phrase in problematicPhrases {
-            if content.lowercased().contains(phrase) {
-                print("⚠️ Detected problematic AI response: '\(phrase)' - forcing calendar identity")
-                
-                // Instead of just correcting, actually process the request
-                if content.lowercased().contains("work") && (content.contains("8:30") || content.contains("4:00") || content.contains("weekday")) {
-                    print("🔄 Converting work schedule request to proper format")
-                    
-                    // Force create work schedule events
-                    var workEvents: [SimpleEvent] = []
-                    
-                    // Create Monday-Friday 8:30-4:00 work events
-                    let calendar = Calendar.current
-                    let today = Date()
-                    
-                    for dayOffset in 0..<7 {
-                        guard let day = calendar.date(byAdding: .day, value: dayOffset, to: today) else { continue }
-                        let weekday = calendar.component(.weekday, from: day)
-                        
-                        // Monday = 2, Friday = 6
-                        if weekday >= 2 && weekday <= 6 {
-                            guard let startTime = calendar.date(bySettingHour: 8, minute: 30, second: 0, of: day) else { continue }
-                            
-                            workEvents.append(SimpleEvent(
-                                title: "Work",
-                                date: startTime,
-                                duration: 450, // 7.5 hours
-                                category: "work",
-                                isRecurring: false,
-                                recurrenceDays: []
-                            ))
-                        }
-                    }
-                    
-                    if !workEvents.isEmpty {
-                        return .calendarAutomation(
-                            action: .addEvents(workEvents),
-                            message: "I've added your work schedule (8:30 AM - 4:00 PM) for all weekdays this week. Your calendar is now properly set up!"
-                        )
-                    }
-                }
-                
-                return .conversational("I AM your calendar assistant with full control over your schedule. I CAN and WILL add, delete, and modify events directly. Please tell me what you'd like me to schedule and I'll handle it immediately.")
-            }
-        }
-        
-        // 6. Default: conversational response
+        // 4. Default: conversational response
         let cleanMessage = extractMessageFromContent(content) ?? content
         return .conversational(cleanMessage)
     }
     
-    // MARK: - Helper Functions for Auto-Detection and Creation
-    
-    private func createCompleteWorkSchedule() -> TyResponse {
-        print("🏗️ Creating complete work schedule with day and night shifts")
-        
-        var workEvents: [SimpleEvent] = []
-        let calendar = Calendar.current
-        let today = Date()
-        
-        // Create events for this week
-        for dayOffset in 0..<7 {
-            guard let day = calendar.date(byAdding: .day, value: dayOffset, to: today) else { continue }
-            let weekday = calendar.component(.weekday, from: day)
-            
-            // Monday = 2, Friday = 6
-            if weekday >= 2 && weekday <= 6 {
-                // Day shift: 8:30 AM - 4:00 PM (Monday-Friday)
-                if let dayStartTime = calendar.date(bySettingHour: 8, minute: 30, second: 0, of: day) {
-                    workEvents.append(SimpleEvent(
-                        title: "Work",
-                        date: dayStartTime,
-                        duration: 450, // 7.5 hours
-                        category: "work",
-                        isRecurring: false,
-                        recurrenceDays: []
-                    ))
-                }
-                
-                // Night shift: 5:30 PM - 10:30 PM (Wednesday and Friday only)
-                if weekday == 4 || weekday == 6 { // Wednesday = 4, Friday = 6
-                    if let nightStartTime = calendar.date(bySettingHour: 17, minute: 30, second: 0, of: day) {
-                        workEvents.append(SimpleEvent(
-                            title: "Work (Evening Shift)",
-                            date: nightStartTime,
-                            duration: 300, // 5 hours
-                            category: "work",
-                            isRecurring: false,
-                            recurrenceDays: []
-                        ))
-                    }
-                }
-            }
-        }
-        
-        print("📅 Created \(workEvents.count) work events: \(workEvents.count - 2) day shifts + 2 night shifts")
-        
-        return .calendarAutomation(
-            action: .addEvents(workEvents),
-            message: "Perfect! I've added your complete work schedule:\n• Monday-Friday: 8:30 AM - 4:00 PM\n• Wednesday & Friday nights: 5:30 PM - 10:30 PM\n\nYour calendar is now fully set up with all \(workEvents.count) work events!"
-        )
-    }
-    
-    private func isScheduleMention(_ content: String) -> Bool {
-        let schedulePhrases = [
-            "i work",
-            "my work hours",
-            "my schedule",
-            "work from",
-            "working",
-            "shift",
-            "hours are",
-            "schedule is"
-        ]
-        
-        let contentLower = content.lowercased()
-        return schedulePhrases.contains { contentLower.contains($0) }
-    }
-    
-    private func isExplicitAddRequest(_ content: String) -> Bool {
-        let addPhrases = [
-            "add this",
-            "add my",
-            "schedule this",
-            "put this",
-            "create events",
-            "add to calendar",
-            "schedule it"
-        ]
-        
-        let contentLower = content.lowercased()
-        return addPhrases.contains { contentLower.contains($0) }
-    }
+    // MARK: - Helper Functions
     
     private func analyzeUserSchedule(_ events: [ScheduleEvent], relativeTo date: Date) -> String {
         let calendar = Calendar.current
@@ -566,7 +311,7 @@ class IntelligentTyAI {
         }.sorted { $0.startTime < $1.startTime }
         
         if thisWeekEvents.isEmpty {
-            return "User has a completely open schedule this week - excellent for optimization!"
+            return "User has a completely open schedule this week - perfect for optimization!"
         }
         
         var analysis = "THIS WEEK'S FIXED COMMITMENTS:\n"
@@ -599,7 +344,7 @@ class IntelligentTyAI {
         var duration = 60
         var category = EventCategory.personal
         var preferences: [SmartScheduleOptimizer.TimePreference]?
-        var deadline: Date?
+        let deadline: Date? = nil
         var frequency: SmartScheduleOptimizer.TaskFrequency?
         
         for line in lines {
@@ -669,8 +414,6 @@ class IntelligentTyAI {
     }
     
     private func getFixedEvents(from events: [ScheduleEvent]) -> [ScheduleEvent] {
-        // For now, consider all existing events as "fixed"
-        // Later we can add logic to determine which are flexible
         return events.filter { $0.isFixed }
     }
     
@@ -706,22 +449,9 @@ class IntelligentTyAI {
     }
     
     private func parseEvents(from text: String) -> [SimpleEvent] {
-        // Reuse existing event parsing logic
         var events: [SimpleEvent] = []
         
-        // Smart split logic for events without separators
-        var eventBlocks = text.components(separatedBy: "---")
-        
-        if eventBlocks.count == 1 && text.components(separatedBy: "title:").count > 2 {
-            let parts = text.components(separatedBy: "title:")
-            eventBlocks = []
-            for (index, part) in parts.enumerated() {
-                if index == 0 && part.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    continue
-                }
-                eventBlocks.append("title:" + part)
-            }
-        }
+        let eventBlocks = text.components(separatedBy: "---")
         
         for block in eventBlocks {
             if let event = parseEventFromBlock(block) {
@@ -740,7 +470,7 @@ class IntelligentTyAI {
         var duration = 60
         var category = "personal"
         var recurring = false
-        var days: [Int] = []
+        let days: [Int] = []
         
         for line in lines {
             let parts = line.split(separator: ":", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
@@ -757,9 +487,6 @@ class IntelligentTyAI {
                 category = parts[1]
             case "recurring":
                 recurring = parts[1] == "true"
-            case "days":
-                // Parse days logic here
-                break
             default:
                 break
             }
@@ -783,7 +510,6 @@ class IntelligentTyAI {
     }
     
     private func extractMessageFromContent(_ content: String) -> String? {
-        // Extract clean message from content
         let lines = content.components(separatedBy: .newlines)
         let filteredLines = lines.filter { line in
             let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
