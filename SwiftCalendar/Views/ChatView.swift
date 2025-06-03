@@ -2,7 +2,7 @@
 //  ChatView.swift
 //  SwiftCalendar
 //
-//  FINAL: Complete theme integration with multiple selection
+//  ULTRA-MODERN: Sleek, futuristic chat interface
 //
 
 import SwiftUI
@@ -19,55 +19,66 @@ struct ChatView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
-                // Custom Navigation Header
-                TymoreNavigationHeader(viewModel: viewModel)
-                
-                // Messages list with custom styling
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        LazyVStack(spacing: TymoreSpacing.md) {
-                            ForEach(viewModel.messages) { message in
-                                TymoreMessageBubble(
-                                    message: message,
-                                    viewModel: viewModel,
-                                    onSuggestionTap: { suggestion in
-                                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                                            viewModel.selectScheduleSuggestion(suggestion)
-                                        }
-                                    }
-                                )
-                                .id(message.id)
-                            }
-                            
-                            if viewModel.isLoading {
-                                TymoreTypingIndicator()
-                            }
-                        }
-                        .padding(TymoreSpacing.lg)
-                    }
-                    .background(theme.current.primaryBackground)
-                    .onChange(of: viewModel.messages.count) { _ in
-                        withAnimation(.easeOut(duration: 0.5)) {
-                            proxy.scrollTo(viewModel.messages.last?.id, anchor: .bottom)
-                        }
-                    }
-                }
-                
-                // Error banner
-                if !viewModel.errorMessage.isEmpty {
-                    TymoreErrorBanner(message: viewModel.errorMessage)
-                }
-                
-                // Custom input area
-                TymoreChatInput(
-                    inputText: $viewModel.inputText,
-                    isLoading: viewModel.isLoading,
-                    isInputFocused: $isInputFocused,
-                    onSend: viewModel.sendMessage
+            ZStack {
+                // Ultra-dark background with subtle gradient
+                LinearGradient(
+                    colors: [
+                        theme.current.primaryBackground,
+                        theme.current.secondaryBackground
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
                 )
+                .ignoresSafeArea()
+                
+                VStack(spacing: 0) {
+                    // Futuristic Navigation Header
+                    UltraModernNavigationHeader(viewModel: viewModel)
+                    
+                    // Messages with advanced styling
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            LazyVStack(spacing: TymoreSpacing.lg) {
+                                ForEach(viewModel.messages) { message in
+                                    FuturisticMessageBubble(
+                                        message: message,
+                                        viewModel: viewModel,
+                                        onSuggestionTap: { suggestion in
+                                            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                                viewModel.selectScheduleSuggestion(suggestion)
+                                            }
+                                        }
+                                    )
+                                    .id(message.id)
+                                }
+                                
+                                if viewModel.isLoading {
+                                    UltraModernTypingIndicator()
+                                }
+                            }
+                            .padding(TymoreSpacing.xl)
+                        }
+                        .onChange(of: viewModel.messages.count) { _ in
+                            withAnimation(.easeOut(duration: 0.6)) {
+                                proxy.scrollTo(viewModel.messages.last?.id, anchor: .bottom)
+                            }
+                        }
+                    }
+                    
+                    // Error banner with neon styling
+                    if !viewModel.errorMessage.isEmpty {
+                        NeonErrorBanner(message: viewModel.errorMessage)
+                    }
+                    
+                    // Futuristic input area
+                    FuturisticChatInput(
+                        inputText: $viewModel.inputText,
+                        isLoading: viewModel.isLoading,
+                        isInputFocused: $isInputFocused,
+                        onSend: viewModel.sendMessage
+                    )
+                }
             }
-            .background(theme.current.primaryBackground)
             .navigationBarHidden(true)
             .onAppear {
                 viewModel.scheduleManager = scheduleManager
@@ -86,179 +97,284 @@ struct ChatView: View {
     }
 }
 
-struct TymoreNavigationHeader: View {
+struct UltraModernNavigationHeader: View {
     let viewModel: ChatViewModel
     @EnvironmentObject var theme: TymoreTheme
     
     var body: some View {
-        HStack(spacing: TymoreSpacing.md) {
-            // Ty AI Avatar
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [theme.current.tymoreBlue, theme.current.tymoreSteel],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+        ZStack {
+            // Background with glassmorphism
+            Rectangle()
+                .fill(theme.current.secondaryBackground)
+                .background(.ultraThinMaterial)
+                .overlay(
+                    LinearGradient(
+                        colors: [
+                            theme.current.tymoreAccent.opacity(0.1),
+                            Color.clear
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
                     )
-                    .frame(width: 40, height: 40)
-                
-                Image(systemName: "brain.head.profile")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(.white)
-            }
-            .tymoreShadow(TymoreShadow.subtle)
+                )
             
-            // Title and status
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: TymoreSpacing.xs) {
-                    Text("Ty")
-                        .font(TymoreTypography.headlineMedium)
-                        .foregroundColor(theme.current.primaryText)
-                    
-                    // AI indicator
-                    Text("AI")
-                        .font(TymoreTypography.labelSmall)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(theme.current.tymoreAccent)
-                        .cornerRadius(TymoreRadius.xs)
-                }
-                
-                HStack(spacing: 4) {
+            HStack(spacing: TymoreSpacing.lg) {
+                // Futuristic AI Avatar with glow
+                ZStack {
+                    // Glow ring
                     Circle()
-                        .fill(theme.current.success)
-                        .frame(width: 6, height: 6)
+                        .stroke(
+                            LinearGradient(
+                                colors: [theme.current.tymoreAccent, theme.current.tymorePurple],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 2
+                        )
+                        .frame(width: 50, height: 50)
+                        .neonGlow(theme.current.tymoreAccent, radius: 12)
                     
-                    Text("Schedule Optimizer")
-                        .font(TymoreTypography.bodySmall)
-                        .foregroundColor(theme.current.secondaryText)
+                    // Inner avatar
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [
+                                    theme.current.tymoreBlue,
+                                    theme.current.tymorePurple
+                                ],
+                                center: .center,
+                                startRadius: 5,
+                                endRadius: 20
+                            )
+                        )
+                        .frame(width: 44, height: 44)
+                    
+                    // AI Icon
+                    Image(systemName: "brain.head.profile")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.white)
+                        .neonGlow(.white, radius: 4)
                 }
-            }
-            
-            Spacer()
-            
-            // Action buttons
-            HStack(spacing: TymoreSpacing.sm) {
-                // Clear selections button
-                if !viewModel.selectedSuggestionIds.isEmpty {
-                    Button(action: viewModel.clearSelections) {
-                        Image(systemName: "clear")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(theme.current.warning)
+                .floating()
+                
+                // Title with neon effect
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: TymoreSpacing.sm) {
+                        Text("TY")
+                            .font(TymoreTypography.headlineLarge)
+                            .fontWeight(.black)
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [theme.current.tymoreAccent, theme.current.tymorePurple],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .neonGlow(theme.current.tymoreAccent, radius: 8)
+                        
+                        // Pulsing AI badge
+                        Text("AI")
+                            .font(TymoreTypography.labelSmall)
+                            .fontWeight(.bold)
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(
+                                Capsule()
+                                    .fill(theme.current.tymoreAccent)
+                                    .neonGlow(theme.current.tymoreAccent, radius: 6)
+                            )
+                    }
+                    
+                    HStack(spacing: 6) {
+                        // Animated status dot
+                        Circle()
+                            .fill(theme.current.success)
+                            .frame(width: 8, height: 8)
+                            .neonGlow(theme.current.success, radius: 4)
+                            .scaleEffect(1.0)
+                            .animation(
+                                .easeInOut(duration: 1.5).repeatForever(autoreverses: true),
+                                value: true
+                            )
+                        
+                        Text("Neural Schedule Optimizer")
+                            .font(TymoreTypography.bodySmall)
+                            .foregroundColor(theme.current.accentText)
                     }
                 }
                 
-                // Clear conversation button
-                Button(action: viewModel.clearConversation) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(theme.current.tertiaryText)
+                Spacer()
+                
+                // Action buttons with neon styling
+                HStack(spacing: TymoreSpacing.md) {
+                    if !viewModel.selectedSuggestionIds.isEmpty {
+                        Button(action: viewModel.clearSelections) {
+                            Image(systemName: "clear.fill")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(theme.current.warning)
+                                .frame(width: 36, height: 36)
+                                .background(
+                                    Circle()
+                                        .fill(theme.current.warning.opacity(0.2))
+                                        .overlay(
+                                            Circle()
+                                                .stroke(theme.current.warning, lineWidth: 1)
+                                        )
+                                )
+                                .neonGlow(theme.current.warning, radius: 8)
+                        }
+                    }
+                    
+                    Button(action: viewModel.clearConversation) {
+                        Image(systemName: "trash.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(theme.current.tertiaryText)
+                            .frame(width: 36, height: 36)
+                            .background(
+                                Circle()
+                                    .fill(theme.current.elevatedSurface)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(theme.current.borderColor, lineWidth: 1)
+                                    )
+                            )
+                    }
                 }
             }
+            .padding(.horizontal, TymoreSpacing.xl)
+            .padding(.vertical, TymoreSpacing.lg)
         }
-        .padding(.horizontal, TymoreSpacing.lg)
-        .padding(.vertical, TymoreSpacing.md)
-        .background(theme.current.secondaryBackground)
+        .frame(height: 80)
         .overlay(
             Rectangle()
-                .fill(theme.current.separatorColor)
+                .fill(
+                    LinearGradient(
+                        colors: [theme.current.tymoreAccent.opacity(0.3), Color.clear],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
                 .frame(height: 1),
             alignment: .bottom
         )
     }
 }
 
-struct TymoreMessageBubble: View {
+struct FuturisticMessageBubble: View {
     let message: ChatMessage
     let viewModel: ChatViewModel
     let onSuggestionTap: (ScheduleSuggestion) -> Void
     @EnvironmentObject var theme: TymoreTheme
     
     var body: some View {
-        HStack(alignment: .bottom, spacing: TymoreSpacing.sm) {
-            if message.isUser { Spacer(minLength: 50) }
+        HStack(alignment: .bottom, spacing: TymoreSpacing.md) {
+            if message.isUser { Spacer(minLength: 60) }
             
-            VStack(alignment: message.isUser ? .trailing : .leading, spacing: TymoreSpacing.sm) {
-                // Message bubble
+            VStack(alignment: message.isUser ? .trailing : .leading, spacing: TymoreSpacing.md) {
+                // Ultra-modern message bubble
                 Text(message.content)
                     .font(TymoreTypography.bodyMedium)
                     .foregroundColor(message.isUser ? .white : theme.current.primaryText)
-                    .padding(.horizontal, TymoreSpacing.lg)
-                    .padding(.vertical, TymoreSpacing.md)
+                    .padding(.horizontal, TymoreSpacing.xl)
+                    .padding(.vertical, TymoreSpacing.lg)
                     .background(
-                        RoundedRectangle(cornerRadius: TymoreRadius.lg)
-                            .fill(
-                                message.isUser
-                                ? LinearGradient(
-                                    colors: [theme.current.tymoreBlue, theme.current.tymoreSteel],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                                : LinearGradient(
-                                    colors: [theme.current.cardBackground, theme.current.cardBackground],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
+                        ZStack {
+                            if message.isUser {
+                                // User bubble with gradient + glow
+                                RoundedRectangle(cornerRadius: TymoreRadius.xl)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [theme.current.tymoreBlue, theme.current.tymorePurple],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .neonGlow(theme.current.tymoreBlue, radius: 12)
+                            } else {
+                                // AI bubble with glassmorphism
+                                RoundedRectangle(cornerRadius: TymoreRadius.xl)
+                                    .fill(theme.current.elevatedSurface)
+                                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: TymoreRadius.xl))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: TymoreRadius.xl)
+                                            .stroke(
+                                                LinearGradient(
+                                                    colors: [
+                                                        theme.current.tymoreAccent.opacity(0.5),
+                                                        theme.current.borderColor.opacity(0.3)
+                                                    ],
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                ),
+                                                lineWidth: 1
+                                            )
+                                    )
+                            }
+                        }
                     )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: TymoreRadius.lg)
-                            .stroke(
-                                message.isUser ? Color.clear : theme.current.borderColor,
-                                lineWidth: 1
-                            )
-                    )
-                    .tymoreShadow(message.isUser ? TymoreShadow.soft : TymoreShadow.subtle)
                 
-                // Schedule suggestions with enhanced styling
+                // Futuristic schedule suggestions
                 if let suggestions = message.suggestions, !suggestions.isEmpty {
-                    TymoreScheduleSuggestions(
+                    NeuralScheduleSuggestions(
                         suggestions: suggestions,
                         viewModel: viewModel,
                         onTap: onSuggestionTap
                     )
                 }
                 
-                // Timestamp
+                // Timestamp with glow
                 Text(message.timestamp.chatFormat())
                     .font(TymoreTypography.labelSmall)
                     .foregroundColor(theme.current.tertiaryText)
                     .padding(.horizontal, TymoreSpacing.sm)
             }
             
-            if !message.isUser { Spacer(minLength: 50) }
+            if !message.isUser { Spacer(minLength: 60) }
         }
     }
 }
 
-struct TymoreScheduleSuggestions: View {
+struct NeuralScheduleSuggestions: View {
     let suggestions: [ScheduleSuggestion]
     let viewModel: ChatViewModel
     let onTap: (ScheduleSuggestion) -> Void
     @EnvironmentObject var theme: TymoreTheme
     
     var body: some View {
-        VStack(alignment: .leading, spacing: TymoreSpacing.sm) {
-            // Header
-            HStack {
-                Image(systemName: "lightbulb.fill")
+        VStack(alignment: .leading, spacing: TymoreSpacing.md) {
+            // Futuristic header
+            HStack(spacing: TymoreSpacing.sm) {
+                Image(systemName: "brain.filled.head.profile")
                     .foregroundColor(theme.current.tymoreAccent)
-                    .font(.system(size: 14))
+                    .font(.system(size: 16, weight: .semibold))
+                    .neonGlow(theme.current.tymoreAccent, radius: 6)
                 
-                Text("Optimal Time Suggestions")
+                Text("NEURAL OPTIMIZATION")
                     .font(TymoreTypography.labelMedium)
-                    .foregroundColor(theme.current.secondaryText)
+                    .fontWeight(.bold)
+                    .foregroundColor(theme.current.accentText)
+                    .tracking(1.2)
                 
                 Spacer()
+                
+                // Suggestion count badge
+                Text("\(suggestions.count)")
+                    .font(TymoreTypography.labelSmall)
+                    .fontWeight(.bold)
+                    .foregroundColor(.black)
+                    .frame(width: 20, height: 20)
+                    .background(
+                        Circle()
+                            .fill(theme.current.tymoreAccent)
+                            .neonGlow(theme.current.tymoreAccent, radius: 4)
+                    )
             }
             .padding(.horizontal, TymoreSpacing.sm)
             
-            // Suggestions
+            // Ultra-modern suggestion cards
             ForEach(Array(suggestions.enumerated()), id: \.element.id) { index, suggestion in
-                TymoreSuggestionCard(
+                NeuralSuggestionCard(
                     suggestion: suggestion,
                     rank: index + 1,
                     isSelected: viewModel.isSuggestionSelected(suggestion),
@@ -266,11 +382,11 @@ struct TymoreScheduleSuggestions: View {
                 )
             }
         }
-        .frame(maxWidth: 320)
+        .frame(maxWidth: 340)
     }
 }
 
-struct TymoreSuggestionCard: View {
+struct NeuralSuggestionCard: View {
     let suggestion: ScheduleSuggestion
     let rank: Int
     let isSelected: Bool
@@ -286,43 +402,73 @@ struct TymoreSuggestionCard: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: TymoreSpacing.md) {
-                // Rank badge
-                Text("#\(rank)")
-                    .font(TymoreTypography.labelSmall)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                    .frame(width: 28, height: 28)
-                    .background(
-                        Circle()
-                            .fill(isSelected ? theme.current.success : theme.current.tymoreSteel)
-                    )
+                // Futuristic rank indicator
+                ZStack {
+                    Circle()
+                        .fill(
+                            isSelected
+                            ? LinearGradient(
+                                colors: [theme.current.success, theme.current.success.opacity(0.7)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                            : LinearGradient(
+                                colors: [theme.current.tymoreSteel, theme.current.tymorePurple],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 32, height: 32)
+                    
+                    if isSelected {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 14, weight: .black))
+                            .foregroundColor(.white)
+                    } else {
+                        Text("\(rank)")
+                            .font(TymoreTypography.labelSmall)
+                            .fontWeight(.black)
+                            .foregroundColor(.white)
+                    }
+                }
+                .neonGlow(
+                    isSelected ? theme.current.success : theme.current.tymoreSteel,
+                    radius: isSelected ? 8 : 6
+                )
                 
-                // Content
-                VStack(alignment: .leading, spacing: 4) {
+                // Content with advanced styling
+                VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Text(suggestion.timeSlot.startTime, formatter: timeFormatter)
                             .font(TymoreTypography.headlineSmall)
-                            .foregroundColor(isSelected ? theme.current.success : theme.current.primaryText)
-                            .fontWeight(.semibold)
+                            .fontWeight(.bold)
+                            .foregroundColor(
+                                isSelected ? theme.current.success : theme.current.primaryText
+                            )
                         
                         Spacer()
                         
-                        // Status indicator
+                        // Neural score visualization
                         if isSelected {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundColor(theme.current.success)
-                                .font(.system(size: 20))
+                                .font(.system(size: 22))
+                                .neonGlow(theme.current.success, radius: 6)
                         } else {
-                            // Score visualization
-                            HStack(spacing: 2) {
+                            HStack(spacing: 3) {
                                 ForEach(0..<5) { index in
                                     Circle()
                                         .fill(
                                             index < Int(suggestion.timeSlot.score * 5)
-                                            ? theme.current.tymoreBlue
+                                            ? theme.current.tymoreAccent
                                             : theme.current.tertiaryBackground
                                         )
                                         .frame(width: 6, height: 6)
+                                        .neonGlow(
+                                            index < Int(suggestion.timeSlot.score * 5)
+                                            ? theme.current.tymoreAccent : Color.clear,
+                                            radius: 2
+                                        )
                                 }
                             }
                         }
@@ -334,46 +480,63 @@ struct TymoreSuggestionCard: View {
                         .multilineTextAlignment(.leading)
                         .lineLimit(2)
                     
-                    // Action indicator
-                    HStack(spacing: 4) {
+                    // Action indicator with neon styling
+                    HStack(spacing: 6) {
                         Image(systemName: isSelected ? "calendar.badge.checkmark" : "plus.circle.fill")
-                            .font(.system(size: 12))
-                            .foregroundColor(isSelected ? theme.current.success : theme.current.tymoreBlue)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(
+                                isSelected ? theme.current.success : theme.current.tymoreAccent
+                            )
                         
-                        Text(isSelected ? "Scheduled" : "Tap to schedule")
+                        Text(isSelected ? "SCHEDULED" : "TAP TO SCHEDULE")
                             .font(TymoreTypography.labelSmall)
-                            .foregroundColor(isSelected ? theme.current.success : theme.current.tymoreBlue)
-                            .fontWeight(.medium)
+                            .fontWeight(.bold)
+                            .tracking(0.5)
+                            .foregroundColor(
+                                isSelected ? theme.current.success : theme.current.tymoreAccent
+                            )
                     }
                 }
                 
                 Spacer()
             }
-            .padding(TymoreSpacing.md)
+            .padding(TymoreSpacing.lg)
             .background(
-                RoundedRectangle(cornerRadius: TymoreRadius.md)
-                    .fill(
-                        isSelected
-                        ? theme.current.success.opacity(0.1)
-                        : theme.current.cardBackground
-                    )
+                ZStack {
+                    RoundedRectangle(cornerRadius: TymoreRadius.lg)
+                        .fill(
+                            isSelected
+                            ? theme.current.success.opacity(0.1)
+                            : theme.current.elevatedSurface
+                        )
+                        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: TymoreRadius.lg))
+                    
+                    RoundedRectangle(cornerRadius: TymoreRadius.lg)
+                        .stroke(
+                            LinearGradient(
+                                colors: [
+                                    isSelected ? theme.current.success : theme.current.tymoreAccent,
+                                    isSelected ? theme.current.success.opacity(0.3) : theme.current.borderColor
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: isSelected ? 2 : 1
+                        )
+                        .neonGlow(
+                            isSelected ? theme.current.success : theme.current.tymoreAccent,
+                            radius: isSelected ? 8 : 4
+                        )
+                }
             )
-            .overlay(
-                RoundedRectangle(cornerRadius: TymoreRadius.md)
-                    .stroke(
-                        isSelected ? theme.current.success : theme.current.borderColor,
-                        lineWidth: isSelected ? 2 : 1
-                    )
-            )
-            .tymoreShadow(isSelected ? TymoreShadow.medium : TymoreShadow.subtle)
         }
         .buttonStyle(PlainButtonStyle())
         .disabled(isSelected)
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isSelected)
+        .animation(.spring(response: 0.4, dampingFraction: 0.7), value: isSelected)
     }
 }
 
-struct TymoreChatInput: View {
+struct FuturisticChatInput: View {
     @Binding var inputText: String
     let isLoading: Bool
     @FocusState.Binding var isInputFocused: Bool
@@ -382,14 +545,26 @@ struct TymoreChatInput: View {
     
     var body: some View {
         VStack(spacing: 0) {
+            // Neon separator
             Rectangle()
-                .fill(theme.current.separatorColor)
-                .frame(height: 1)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            theme.current.tymoreAccent.opacity(0.6),
+                            Color.clear,
+                            theme.current.tymorePurple.opacity(0.6)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(height: 2)
+                .neonGlow(theme.current.tymoreAccent, radius: 4)
             
-            HStack(spacing: TymoreSpacing.md) {
-                // Input field with sophisticated styling
-                HStack(spacing: TymoreSpacing.sm) {
-                    TextField("Ask Ty to optimize your schedule...", text: $inputText, axis: .vertical)
+            HStack(spacing: TymoreSpacing.lg) {
+                // Ultra-modern input field
+                HStack(spacing: TymoreSpacing.md) {
+                    TextField("Interface with Ty's neural network...", text: $inputText, axis: .vertical)
                         .font(TymoreTypography.bodyMedium)
                         .foregroundColor(theme.current.primaryText)
                         .lineLimit(1...4)
@@ -400,74 +575,128 @@ struct TymoreChatInput: View {
                         Button(action: { inputText = "" }) {
                             Image(systemName: "xmark.circle.fill")
                                 .foregroundColor(theme.current.tertiaryText)
+                                .font(.system(size: 18))
                         }
                     }
                 }
-                .padding(.horizontal, TymoreSpacing.md)
-                .padding(.vertical, TymoreSpacing.sm)
-                .background(theme.current.tertiaryBackground)
-                .cornerRadius(TymoreRadius.lg)
-                .overlay(
-                    RoundedRectangle(cornerRadius: TymoreRadius.lg)
-                        .stroke(
-                            isInputFocused ? theme.current.tymoreBlue : theme.current.borderColor,
-                            lineWidth: isInputFocused ? 2 : 1
-                        )
+                .padding(.horizontal, TymoreSpacing.lg)
+                .padding(.vertical, TymoreSpacing.md)
+                .background(
+                    ZStack {
+                        RoundedRectangle(cornerRadius: TymoreRadius.xl)
+                            .fill(theme.current.elevatedSurface)
+                            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: TymoreRadius.xl))
+                        
+                        RoundedRectangle(cornerRadius: TymoreRadius.xl)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [
+                                        isInputFocused ? theme.current.tymoreAccent : theme.current.borderColor,
+                                        isInputFocused ? theme.current.tymorePurple : theme.current.borderColor.opacity(0.5)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: isInputFocused ? 2 : 1
+                            )
+                            .neonGlow(
+                                isInputFocused ? theme.current.tymoreAccent : Color.clear,
+                                radius: isInputFocused ? 8 : 0
+                            )
+                    }
                 )
                 
-                // Send button with gradient
+                // Futuristic send button
                 Button(action: onSend) {
-                    Image(systemName: "paperplane.fill")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(.white)
-                        .frame(width: 44, height: 44)
-                        .background(
-                            Circle()
-                                .fill(
-                                    inputText.isEmpty || isLoading
-                                    ? LinearGradient(colors: [theme.current.tertiaryText], startPoint: .top, endPoint: .bottom)
-                                    : LinearGradient(
-                                        colors: [theme.current.tymoreBlue, theme.current.tymoreSteel],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
+                    ZStack {
+                        Circle()
+                            .fill(
+                                inputText.isEmpty || isLoading
+                                ? LinearGradient(
+                                    colors: [theme.current.tertiaryBackground],
+                                    startPoint: .top,
+                                    endPoint: .bottom
                                 )
-                        )
-                        .tymoreShadow(inputText.isEmpty ? TymoreShadow.subtle : TymoreShadow.soft)
+                                : LinearGradient(
+                                    colors: [theme.current.tymoreBlue, theme.current.tymorePurple],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 50, height: 50)
+                        
+                        if isLoading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .scaleEffect(0.8)
+                        } else {
+                            Image(systemName: "paperplane.fill")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(.white)
+                                .neonGlow(.white, radius: inputText.isEmpty ? 0 : 4)
+                        }
+                    }
+                    .neonGlow(
+                        inputText.isEmpty ? Color.clear : theme.current.tymoreBlue,
+                        radius: inputText.isEmpty ? 0 : 12
+                    )
                 }
                 .disabled(inputText.isEmpty || isLoading)
                 .scaleEffect(inputText.isEmpty ? 0.9 : 1.0)
                 .animation(.spring(response: 0.3, dampingFraction: 0.6), value: inputText.isEmpty)
             }
-            .padding(TymoreSpacing.lg)
-            .background(theme.current.secondaryBackground)
+            .padding(TymoreSpacing.xl)
+            .background(
+                LinearGradient(
+                    colors: [
+                        theme.current.secondaryBackground,
+                        theme.current.primaryBackground
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .background(.ultraThinMaterial)
+            )
         }
     }
 }
 
-struct TymoreTypingIndicator: View {
+struct UltraModernTypingIndicator: View {
     @State private var animationPhase = 0.0
     @EnvironmentObject var theme: TymoreTheme
     
     var body: some View {
         HStack {
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 ForEach(0..<3) { index in
                     Circle()
-                        .fill(theme.current.tymoreBlue)
-                        .frame(width: 8, height: 8)
-                        .scaleEffect(1.0 + 0.3 * sin(animationPhase + Double(index) * 0.7))
+                        .fill(
+                            LinearGradient(
+                                colors: [theme.current.tymoreAccent, theme.current.tymorePurple],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 10, height: 10)
+                        .scaleEffect(1.0 + 0.5 * sin(animationPhase + Double(index) * 0.8))
+                        .neonGlow(theme.current.tymoreAccent, radius: 6)
                         .animation(
-                            .easeInOut(duration: 1.0).repeatForever(autoreverses: false),
+                            .easeInOut(duration: 1.2).repeatForever(autoreverses: false),
                             value: animationPhase
                         )
                 }
             }
-            .padding(.horizontal, TymoreSpacing.lg)
-            .padding(.vertical, TymoreSpacing.md)
-            .background(theme.current.cardBackground)
-            .cornerRadius(TymoreRadius.lg)
-            .tymoreShadow(TymoreShadow.subtle)
+            .padding(.horizontal, TymoreSpacing.xl)
+            .padding(.vertical, TymoreSpacing.lg)
+            .background(
+                RoundedRectangle(cornerRadius: TymoreRadius.xl)
+                    .fill(theme.current.elevatedSurface)
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: TymoreRadius.xl))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: TymoreRadius.xl)
+                            .stroke(theme.current.tymoreAccent.opacity(0.3), lineWidth: 1)
+                    )
+            )
             
             Spacer()
         }
@@ -477,14 +706,16 @@ struct TymoreTypingIndicator: View {
     }
 }
 
-struct TymoreErrorBanner: View {
+struct NeonErrorBanner: View {
     let message: String
     @EnvironmentObject var theme: TymoreTheme
     
     var body: some View {
-        HStack(spacing: TymoreSpacing.sm) {
+        HStack(spacing: TymoreSpacing.md) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundColor(theme.current.warning)
+                .font(.system(size: 18, weight: .semibold))
+                .neonGlow(theme.current.warning, radius: 6)
             
             Text(message)
                 .font(TymoreTypography.bodySmall)
@@ -493,13 +724,25 @@ struct TymoreErrorBanner: View {
             
             Spacer()
         }
-        .padding(.horizontal, TymoreSpacing.lg)
-        .padding(.vertical, TymoreSpacing.sm)
-        .background(theme.current.warning.opacity(0.1))
-        .overlay(
-            Rectangle()
-                .fill(theme.current.warning)
-                .frame(height: 2),
+        .padding(.horizontal, TymoreSpacing.xl)
+        .padding(.vertical, TymoreSpacing.md)
+        .background(
+            ZStack {
+                Rectangle()
+                    .fill(theme.current.warning.opacity(0.1))
+                    .background(.thinMaterial)
+                
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            colors: [theme.current.warning, theme.current.warning.opacity(0.3)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(height: 3)
+                    .neonGlow(theme.current.warning, radius: 4)
+            },
             alignment: .bottom
         )
     }

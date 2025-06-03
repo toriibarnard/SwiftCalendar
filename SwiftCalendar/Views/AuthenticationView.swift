@@ -2,7 +2,7 @@
 //  AuthenticationView.swift
 //  SwiftCalendar
 //
-//  FIXED: Removed naming conflicts and ambiguous inits
+//  ULTRA-MODERN: Futuristic authentication interface
 //
 
 import SwiftUI
@@ -53,7 +53,7 @@ struct CleanSecureField: UIViewRepresentable {
     }
 }
 
-// MARK: - Updated AuthenticationView with Tymore Theme
+// MARK: - Ultra-Modern Authentication View
 struct AuthenticationView: View {
     @EnvironmentObject var viewModel: AuthenticationViewModel
     @EnvironmentObject var theme: TymoreTheme
@@ -64,209 +64,328 @@ struct AuthenticationView: View {
     }
     
     var body: some View {
-        GeometryReader { geometry in
-            ScrollView {
-                VStack(spacing: TymoreSpacing.xl) {
-                    Spacer(minLength: geometry.size.height * 0.1)
-                    
-                    // App Logo and Branding
-                    VStack(spacing: TymoreSpacing.lg) {
-                        // Logo with gradient background inspired by your logo
-                        ZStack {
-                            Circle()
-                                .fill(
-                                    RadialGradient(
-                                        colors: [
-                                            theme.current.tymoreBlue.opacity(0.3),
-                                            theme.current.tymoreSteel.opacity(0.1)
-                                        ],
-                                        center: .center,
-                                        startRadius: 0,
-                                        endRadius: 60
-                                    )
-                                )
-                                .frame(width: 120, height: 120)
-                            
+        ZStack {
+            // Ultra-dark background with animated gradients
+            LinearGradient(
+                colors: [
+                    theme.current.primaryBackground,
+                    theme.current.secondaryBackground,
+                    theme.current.primaryBackground
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+            
+            // Floating particles effect
+            ForEach(0..<6, id: \.self) { index in
+                Circle()
+                    .fill(theme.current.tymoreAccent.opacity(0.1))
+                    .frame(width: CGFloat.random(in: 20...40))
+                    .position(
+                        x: CGFloat.random(in: 50...350),
+                        y: CGFloat.random(in: 100...700)
+                    )
+                    .floating()
+                    .neonGlow(theme.current.tymoreAccent, radius: 4)
+            }
+            
+            GeometryReader { geometry in
+                ScrollView {
+                    VStack(spacing: TymoreSpacing.xxxl) {
+                        Spacer(minLength: geometry.size.height * 0.08)
+                        
+                        // Futuristic App Logo and Branding
+                        VStack(spacing: TymoreSpacing.xl) {
+                            // Ultra-modern logo with multiple glow layers
                             ZStack {
-                                // Clock element
+                                // Outer glow ring
                                 Circle()
                                     .stroke(
                                         LinearGradient(
-                                            colors: [theme.current.tymoreBlue, theme.current.tymoreSteel],
+                                            colors: [
+                                                theme.current.tymoreAccent.opacity(0.6),
+                                                theme.current.tymorePurple.opacity(0.4),
+                                                theme.current.tymoreBlue.opacity(0.6)
+                                            ],
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing
                                         ),
                                         lineWidth: 3
                                     )
-                                    .frame(width: 50, height: 50)
+                                    .frame(width: 140, height: 140)
+                                    .neonGlow(theme.current.tymoreAccent, radius: 20)
+                                    .floating()
                                 
-                                // T letter
-                                Text("T")
-                                    .font(.system(size: 36, weight: .bold, design: .rounded))
-                                    .foregroundStyle(
+                                // Middle ring
+                                Circle()
+                                    .stroke(
                                         LinearGradient(
-                                            colors: [theme.current.tymoreBlue, theme.current.tymoreSteel],
+                                            colors: [theme.current.tymoreBlue, theme.current.tymorePurple],
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing
-                                        )
+                                        ),
+                                        lineWidth: 2
                                     )
+                                    .frame(width: 100, height: 100)
+                                    .neonGlow(theme.current.tymoreBlue, radius: 12)
+                                
+                                // Inner core
+                                ZStack {
+                                    Circle()
+                                        .fill(
+                                            RadialGradient(
+                                                colors: [
+                                                    theme.current.tymoreBlue,
+                                                    theme.current.tymorePurple,
+                                                    theme.current.primaryBackground
+                                                ],
+                                                center: .center,
+                                                startRadius: 5,
+                                                endRadius: 40
+                                            )
+                                        )
+                                        .frame(width: 80, height: 80)
+                                    
+                                    // Neural T logo
+                                    Text("T")
+                                        .font(.system(size: 42, weight: .black, design: .rounded))
+                                        .foregroundStyle(
+                                            LinearGradient(
+                                                colors: [Color.white, theme.current.tymoreAccent],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                        .neonGlow(.white, radius: 8)
+                                }
+                            }
+                            
+                            // Ultra-modern branding
+                            VStack(spacing: TymoreSpacing.md) {
+                                HStack(spacing: TymoreSpacing.sm) {
+                                    Text("TYMORE")
+                                        .font(TymoreTypography.displayLarge)
+                                        .fontWeight(.black)
+                                        .tracking(3)
+                                        .foregroundStyle(
+                                            LinearGradient(
+                                                colors: [
+                                                    theme.current.tymoreAccent,
+                                                    theme.current.tymorePurple,
+                                                    theme.current.tymoreBlue
+                                                ],
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            )
+                                        )
+                                        .neonGlow(theme.current.tymoreAccent, radius: 12)
+                                    
+                                    // Version badge
+                                    Text("4.0")
+                                        .font(TymoreTypography.labelSmall)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.black)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(
+                                            Capsule()
+                                                .fill(theme.current.tymoreAccent)
+                                                .neonGlow(theme.current.tymoreAccent, radius: 6)
+                                        )
+                                }
+                                
+                                Text("NEURAL SCHEDULING INTELLIGENCE")
+                                    .font(TymoreTypography.bodyMedium)
+                                    .fontWeight(.medium)
+                                    .tracking(1.5)
+                                    .foregroundColor(theme.current.accentText)
+                                    .multilineTextAlignment(.center)
                             }
                         }
-                        .tymoreShadow(TymoreShadow.medium)
+                        .padding(.bottom, TymoreSpacing.xl)
                         
-                        VStack(spacing: TymoreSpacing.sm) {
-                            Text("Tymore")
-                                .font(TymoreTypography.displayLarge)
-                                .fontWeight(.bold)
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        colors: [theme.current.tymoreBlue, theme.current.tymoreSteel],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
+                        // Ultra-modern form fields
+                        VStack(spacing: TymoreSpacing.xl) {
+                            if viewModel.isSignUpMode {
+                                FuturisticTextField(
+                                    text: $viewModel.displayName,
+                                    placeholder: "Neural Identity (Optional)",
+                                    icon: "person.crop.circle.fill",
+                                    isSecure: false,
+                                    focusedField: $focusedField,
+                                    field: .displayName
                                 )
+                            }
                             
-                            Text("Intelligent scheduling for busy people")
-                                .font(TymoreTypography.bodyLarge)
-                                .foregroundColor(theme.current.secondaryText)
-                                .multilineTextAlignment(.center)
-                        }
-                    }
-                    .padding(.bottom, TymoreSpacing.xl)
-                    
-                    // Form Fields with sophisticated styling
-                    VStack(spacing: TymoreSpacing.lg) {
-                        if viewModel.isSignUpMode {
-                            TymoreTextField(
-                                text: $viewModel.displayName,
-                                placeholder: "Display Name (Optional)",
-                                icon: "person.circle",
+                            FuturisticTextField(
+                                text: $viewModel.email,
+                                placeholder: "Neural Interface ID",
+                                icon: "envelope.circle.fill",
                                 isSecure: false,
                                 focusedField: $focusedField,
-                                field: .displayName
+                                field: .email
                             )
-                        }
-                        
-                        TymoreTextField(
-                            text: $viewModel.email,
-                            placeholder: "Email Address",
-                            icon: "envelope",
-                            isSecure: false,
-                            focusedField: $focusedField,
-                            field: .email
-                        )
-                        .keyboardType(.emailAddress)
-                        .textInputAutocapitalization(.never)
-                        
-                        TymoreTextField(
-                            text: $viewModel.password,
-                            placeholder: "Password",
-                            icon: "lock",
-                            isSecure: true,
-                            focusedField: $focusedField,
-                            field: .password
-                        )
-                        
-                        if viewModel.isSignUpMode {
-                            TymoreTextField(
-                                text: $viewModel.confirmPassword,
-                                placeholder: "Confirm Password",
-                                icon: "lock.fill",
+                            .keyboardType(.emailAddress)
+                            .textInputAutocapitalization(.never)
+                            
+                            FuturisticTextField(
+                                text: $viewModel.password,
+                                placeholder: "Security Protocol",
+                                icon: "lock.circle.fill",
                                 isSecure: true,
                                 focusedField: $focusedField,
-                                field: .confirmPassword
+                                field: .password
                             )
-                        }
-                    }
-                    .padding(.horizontal, TymoreSpacing.lg)
-                    
-                    // Error Message
-                    if !viewModel.errorMessage.isEmpty {
-                        Text(viewModel.errorMessage)
-                            .font(TymoreTypography.bodySmall)
-                            .foregroundColor(theme.current.error)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, TymoreSpacing.lg)
-                            .padding(.vertical, TymoreSpacing.sm)
-                            .background(theme.current.error.opacity(0.1))
-                            .cornerRadius(TymoreRadius.sm)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: TymoreRadius.sm)
-                                    .stroke(theme.current.error.opacity(0.3), lineWidth: 1)
-                            )
-                            .padding(.horizontal, TymoreSpacing.lg)
-                    }
-                    
-                    // Action Button
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            if viewModel.isSignUpMode {
-                                viewModel.signUp()
-                            } else {
-                                viewModel.signIn()
-                            }
-                        }
-                    }) {
-                        HStack(spacing: TymoreSpacing.sm) {
-                            if viewModel.isLoading {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .scaleEffect(0.8)
-                            } else {
-                                Image(systemName: viewModel.isSignUpMode ? "person.badge.plus" : "person.badge.key")
-                                    .font(.system(size: 16, weight: .medium))
-                                
-                                Text(viewModel.isSignUpMode ? "Create Account" : "Sign In")
-                                    .font(TymoreTypography.labelLarge)
-                                    .fontWeight(.semibold)
-                            }
-                        }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(
-                            LinearGradient(
-                                colors: [theme.current.tymoreBlue, theme.current.tymoreSteel],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .cornerRadius(TymoreRadius.lg)
-                        .tymoreShadow(TymoreShadow.medium)
-                    }
-                    .disabled(viewModel.isLoading)
-                    .scaleEffect(viewModel.isLoading ? 0.98 : 1.0)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: viewModel.isLoading)
-                    .padding(.horizontal, TymoreSpacing.lg)
-                    
-                    // Toggle Mode
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            viewModel.isSignUpMode.toggle()
-                            viewModel.errorMessage = ""
-                        }
-                    }) {
-                        HStack(spacing: 4) {
-                            Text(viewModel.isSignUpMode ? "Already have an account?" : "Don't have an account?")
-                                .foregroundColor(theme.current.secondaryText)
                             
-                            Text(viewModel.isSignUpMode ? "Sign In" : "Sign Up")
-                                .foregroundColor(theme.current.tymoreBlue)
-                                .fontWeight(.semibold)
+                            if viewModel.isSignUpMode {
+                                FuturisticTextField(
+                                    text: $viewModel.confirmPassword,
+                                    placeholder: "Confirm Security Protocol",
+                                    icon: "checkmark.shield.fill",
+                                    isSecure: true,
+                                    focusedField: $focusedField,
+                                    field: .confirmPassword
+                                )
+                            }
                         }
-                        .font(TymoreTypography.bodyMedium)
+                        .padding(.horizontal, TymoreSpacing.xl)
+                        
+                        // Neural error display
+                        if !viewModel.errorMessage.isEmpty {
+                            HStack(spacing: TymoreSpacing.md) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(theme.current.error)
+                                    .font(.system(size: 18, weight: .bold))
+                                    .neonGlow(theme.current.error, radius: 6)
+                                
+                                Text(viewModel.errorMessage)
+                                    .font(TymoreTypography.bodyMedium)
+                                    .foregroundColor(theme.current.primaryText)
+                                    .multilineTextAlignment(.leading)
+                            }
+                            .padding(TymoreSpacing.lg)
+                            .background(
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: TymoreRadius.md)
+                                        .fill(theme.current.error.opacity(0.1))
+                                        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: TymoreRadius.md))
+                                    
+                                    RoundedRectangle(cornerRadius: TymoreRadius.md)
+                                        .stroke(theme.current.error, lineWidth: 1)
+                                        .neonGlow(theme.current.error, radius: 8)
+                                }
+                            )
+                            .padding(.horizontal, TymoreSpacing.xl)
+                        }
+                        
+                        // Ultra-futuristic action button
+                        Button(action: {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                if viewModel.isSignUpMode {
+                                    viewModel.signUp()
+                                } else {
+                                    viewModel.signIn()
+                                }
+                            }
+                        }) {
+                            HStack(spacing: TymoreSpacing.md) {
+                                if viewModel.isLoading {
+                                    // Futuristic loading indicator
+                                    ZStack {
+                                        Circle()
+                                            .stroke(Color.white.opacity(0.3), lineWidth: 2)
+                                            .frame(width: 20, height: 20)
+                                        
+                                        Circle()
+                                            .trim(from: 0, to: 0.7)
+                                            .stroke(Color.white, lineWidth: 2)
+                                            .frame(width: 20, height: 20)
+                                            .rotationEffect(.degrees(-90))
+                                            .animation(
+                                                .linear(duration: 1).repeatForever(autoreverses: false),
+                                                value: viewModel.isLoading
+                                            )
+                                    }
+                                } else {
+                                    Image(systemName: viewModel.isSignUpMode ? "person.badge.plus.fill" : "key.fill")
+                                        .font(.system(size: 18, weight: .bold))
+                                        .neonGlow(.white, radius: 4)
+                                    
+                                    Text(viewModel.isSignUpMode ? "INITIALIZE NEURAL LINK" : "ESTABLISH CONNECTION")
+                                        .font(TymoreTypography.labelLarge)
+                                        .fontWeight(.black)
+                                        .tracking(1)
+                                }
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 60)
+                            .background(
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: TymoreRadius.lg)
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [
+                                                    theme.current.tymoreBlue,
+                                                    theme.current.tymorePurple,
+                                                    theme.current.tymoreAccent
+                                                ],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                    
+                                    // Animated border
+                                    RoundedRectangle(cornerRadius: TymoreRadius.lg)
+                                        .stroke(
+                                            LinearGradient(
+                                                colors: [Color.white.opacity(0.6), Color.clear],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ),
+                                            lineWidth: 2
+                                        )
+                                }
+                            )
+                            .neonGlow(theme.current.tymoreBlue, radius: 16)
+                        }
+                        .disabled(viewModel.isLoading)
+                        .scaleEffect(viewModel.isLoading ? 0.97 : 1.0)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: viewModel.isLoading)
+                        .padding(.horizontal, TymoreSpacing.xl)
+                        
+                        // Neural mode toggle
+                        Button(action: {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                viewModel.isSignUpMode.toggle()
+                                viewModel.errorMessage = ""
+                            }
+                        }) {
+                            HStack(spacing: TymoreSpacing.sm) {
+                                Text(viewModel.isSignUpMode ? "EXISTING NEURAL PROFILE?" : "NEW TO THE NETWORK?")
+                                    .foregroundColor(theme.current.secondaryText)
+                                    .tracking(0.5)
+                                
+                                Text(viewModel.isSignUpMode ? "CONNECT" : "INITIALIZE")
+                                    .foregroundColor(theme.current.tymoreAccent)
+                                    .fontWeight(.bold)
+                                    .tracking(0.5)
+                                    .neonGlow(theme.current.tymoreAccent, radius: 4)
+                            }
+                            .font(TymoreTypography.bodyMedium)
+                        }
+                        
+                        Spacer(minLength: TymoreSpacing.xl)
                     }
-                    
-                    Spacer(minLength: TymoreSpacing.xl)
                 }
             }
         }
-        .background(theme.current.primaryBackground)
         .preferredColorScheme(theme.isDarkMode ? .dark : .light)
     }
 }
 
-struct TymoreTextField: View {
+struct FuturisticTextField: View {
     @Binding var text: String
     let placeholder: String
     let icon: String
@@ -277,48 +396,137 @@ struct TymoreTextField: View {
     @State private var isPasswordVisible = false
     
     var body: some View {
-        HStack(spacing: TymoreSpacing.md) {
-            // Icon
-            Image(systemName: icon)
-                .font(.system(size: 18, weight: .medium))
-                .foregroundColor(focusedField == field ? theme.current.tymoreBlue : theme.current.tertiaryText)
-                .frame(width: 24)
-                .animation(.easeInOut(duration: 0.2), value: focusedField == field)
-            
-            // Text field
-            Group {
-                if isSecure && !isPasswordVisible {
-                    SecureField(placeholder, text: $text)
-                } else {
-                    TextField(placeholder, text: $text)
-                }
+        HStack(spacing: TymoreSpacing.lg) {
+            // Futuristic icon with glow
+            ZStack {
+                Circle()
+                    .fill(
+                        focusedField == field
+                        ? LinearGradient(
+                            colors: [theme.current.tymoreAccent, theme.current.tymorePurple],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        : LinearGradient(
+                            colors: [theme.current.elevatedSurface],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(width: 44, height: 44)
+                    .neonGlow(
+                        focusedField == field ? theme.current.tymoreAccent : Color.clear,
+                        radius: focusedField == field ? 8 : 0
+                    )
+                
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(
+                        focusedField == field ? .white : theme.current.tertiaryText
+                    )
             }
-            .font(TymoreTypography.bodyMedium)
-            .foregroundColor(theme.current.primaryText)
-            .focused($focusedField, equals: field)
             
-            // Password visibility toggle
+            // Neural text field
+            VStack(alignment: .leading, spacing: 6) {
+                Group {
+                    if isSecure && !isPasswordVisible {
+                        SecureField("", text: $text)
+                    } else {
+                        TextField("", text: $text)
+                    }
+                }
+                .font(TymoreTypography.bodyLarge)
+                .foregroundColor(theme.current.primaryText)
+                .focused($focusedField, equals: field)
+                .placeholder(when: text.isEmpty) {
+                    Text(placeholder)
+                        .font(TymoreTypography.bodyLarge)
+                        .foregroundColor(theme.current.tertiaryText)
+                }
+                
+                // Neural scanning line
+                Rectangle()
+                    .fill(
+                        focusedField == field
+                        ? LinearGradient(
+                            colors: [
+                                theme.current.tymoreAccent,
+                                theme.current.tymorePurple,
+                                theme.current.tymoreAccent
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                        : LinearGradient(
+                            colors: [theme.current.borderColor],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(height: focusedField == field ? 2 : 1)
+                    .neonGlow(
+                        focusedField == field ? theme.current.tymoreAccent : Color.clear,
+                        radius: focusedField == field ? 4 : 0
+                    )
+                    .animation(.easeInOut(duration: 0.3), value: focusedField == field)
+            }
+            
+            // Neural visibility toggle
             if isSecure {
                 Button(action: { isPasswordVisible.toggle() }) {
-                    Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
-                        .font(.system(size: 16, weight: .medium))
+                    Image(systemName: isPasswordVisible ? "eye.slash.fill" : "eye.fill")
+                        .font(.system(size: 18, weight: .medium))
                         .foregroundColor(theme.current.tertiaryText)
+                        .frame(width: 32, height: 32)
+                        .background(
+                            Circle()
+                                .fill(theme.current.elevatedSurface)
+                        )
                 }
             }
         }
-        .padding(.horizontal, TymoreSpacing.lg)
-        .padding(.vertical, TymoreSpacing.md)
-        .background(theme.current.tertiaryBackground)
-        .cornerRadius(TymoreRadius.md)
-        .overlay(
-            RoundedRectangle(cornerRadius: TymoreRadius.md)
-                .stroke(
-                    focusedField == field ? theme.current.tymoreBlue : theme.current.borderColor,
-                    lineWidth: focusedField == field ? 2 : 1
-                )
+        .padding(TymoreSpacing.lg)
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: TymoreRadius.lg)
+                    .fill(theme.current.elevatedSurface)
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: TymoreRadius.lg))
+                
+                RoundedRectangle(cornerRadius: TymoreRadius.lg)
+                    .stroke(
+                        focusedField == field
+                        ? LinearGradient(
+                            colors: [theme.current.tymoreAccent, theme.current.tymorePurple],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        : LinearGradient(
+                            colors: [theme.current.borderColor],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: focusedField == field ? 2 : 1
+                    )
+                    .neonGlow(
+                        focusedField == field ? theme.current.tymoreAccent : Color.clear,
+                        radius: focusedField == field ? 6 : 0
+                    )
+            }
         )
-        .tymoreShadow(focusedField == field ? TymoreShadow.soft : TymoreShadow.subtle)
-        .animation(.easeInOut(duration: 0.2), value: focusedField == field)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusedField == field)
+    }
+}
+
+// MARK: - Placeholder Helper
+extension View {
+    func placeholder<Content: View>(
+        when shouldShow: Bool,
+        alignment: Alignment = .leading,
+        @ViewBuilder placeholder: () -> Content) -> some View {
+        ZStack(alignment: alignment) {
+            placeholder().opacity(shouldShow ? 1 : 0)
+            self
+        }
     }
 }
 
