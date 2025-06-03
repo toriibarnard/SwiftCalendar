@@ -226,8 +226,22 @@ class IntelligentTyAI {
         category: [category]
         recurring: [true/false]
         ---
-        [additional events separated by ---]
+        title: [next event title]
+        date: [YYYY-MM-DD HH:MM]
+        duration: [minutes]
+        category: [category]  
+        recurring: [true/false]
+        ---
+        [continue for ALL individual events you want to create]
         EVENTS_END
+        
+        IMPORTANT FOR RECURRING EVENTS:
+        When users say "I work Monday-Friday" or "Wednesday and Friday nights":
+        - Create separate event blocks for each occurrence
+        - If they want 4 weeks of "Monday-Friday 9-5", create 20 separate event blocks
+        - If they want "Wednesday and Friday nights", create separate blocks for each Wed/Fri
+        - Don't use recurring:true unless it's a single repeating event
+        - Be explicit about each event instance you're creating
         
         For Deleting All Events:
         REMOVE_ALL_START
@@ -480,59 +494,11 @@ class IntelligentTyAI {
         
         for block in eventBlocks {
             if let event = parseEventFromBlock(block) {
-                // If it's recurring, create multiple events
-                if event.isRecurring {
-                    let expandedEvents = expandRecurringEvent(event)
-                    events.append(contentsOf: expandedEvents)
-                } else {
-                    events.append(event)
-                }
+                events.append(event)
             }
         }
         
         return events
-    }
-    
-    // NEW: Handle recurring events by creating multiple instances
-    private func expandRecurringEvent(_ event: SimpleEvent) -> [SimpleEvent] {
-        var expandedEvents: [SimpleEvent] = []
-        let calendar = Calendar.current
-        
-        // For work schedules, create events for the next 4 weeks (20 workdays)
-        let numberOfWeeks = 4
-        let today = Date()
-        
-        // Get the base date components
-        let baseComponents = calendar.dateComponents([.hour, .minute], from: event.date)
-        
-        for weekOffset in 0..<numberOfWeeks {
-            for dayOffset in 0..<7 {
-                guard let checkDate = calendar.date(byAdding: .day, value: (weekOffset * 7) + dayOffset, to: today) else { continue }
-                
-                let weekday = calendar.component(.weekday, from: checkDate)
-                
-                // Monday = 2, Friday = 6 (weekend = 1 and 7)
-                if weekday >= 2 && weekday <= 6 {
-                    guard let eventDate = calendar.date(bySettingHour: baseComponents.hour ?? 8,
-                                                      minute: baseComponents.minute ?? 30,
-                                                      second: 0,
-                                                      of: checkDate) else { continue }
-                    
-                    let newEvent = SimpleEvent(
-                        title: event.title,
-                        date: eventDate,
-                        duration: event.duration,
-                        category: event.category,
-                        isRecurring: false, // Individual instances aren't recurring
-                        recurrenceDays: []
-                    )
-                    expandedEvents.append(newEvent)
-                }
-            }
-        }
-        
-        print("📅 Expanded recurring '\(event.title)' into \(expandedEvents.count) weekday events")
-        return expandedEvents
     }
     
     private func parseEventFromBlock(_ block: String) -> SimpleEvent? {
