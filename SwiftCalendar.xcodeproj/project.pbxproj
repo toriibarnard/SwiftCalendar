@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		506F54A52DE29C3D00162589 /* ScheduleEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 506F54A42DE29C3D00162589 /* ScheduleEvent.swift */; };
 		506F54A72DE29C6400162589 /* ScheduleManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 506F54A62DE29C6400162589 /* ScheduleManager.swift */; };
-		508F8FD52DED0FF1008FB70A /* DirectGPT4Calendar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 508F8FD42DED0FF1008FB70A /* DirectGPT4Calendar.swift */; };
 		508F8FD72DEDC94E008FB70A /* FirebaseEventService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 508F8FD62DEDC94E008FB70A /* FirebaseEventService.swift */; };
 		508F8FD92DEDC9DB008FB70A /* MigrationHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 508F8FD82DEDC9DB008FB70A /* MigrationHelper.swift */; };
 		508F8FDB2DEDD17F008FB70A /* EventDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 508F8FDA2DEDD17F008FB70A /* EventDetailView.swift */; };
@@ -54,7 +53,6 @@
 /* Begin PBXFileReference section */
 		506F54A42DE29C3D00162589 /* ScheduleEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleEvent.swift; sourceTree = "<group>"; };
 		506F54A62DE29C6400162589 /* ScheduleManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleManager.swift; sourceTree = "<group>"; };
-		508F8FD42DED0FF1008FB70A /* DirectGPT4Calendar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectGPT4Calendar.swift; sourceTree = "<group>"; };
 		508F8FD62DEDC94E008FB70A /* FirebaseEventService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseEventService.swift; sourceTree = "<group>"; };
 		508F8FD82DEDC9DB008FB70A /* MigrationHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationHelper.swift; sourceTree = "<group>"; };
 		508F8FDA2DEDD17F008FB70A /* EventDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventDetailView.swift; sourceTree = "<group>"; };
@@ -188,7 +186,6 @@
 				508F8FDC2DEDEFC3008FB70A /* SmartScheduleOptimizer.swift */,
 				508F8FD82DEDC9DB008FB70A /* MigrationHelper.swift */,
 				508F8FD62DEDC94E008FB70A /* FirebaseEventService.swift */,
-				508F8FD42DED0FF1008FB70A /* DirectGPT4Calendar.swift */,
 				509C88A52DE28B16004AEA54 /* AuthenticationService.swift */,
 			);
 			path = Services;
@@ -357,7 +354,6 @@
 				508F8FD92DEDC9DB008FB70A /* MigrationHelper.swift in Sources */,
 				508F8FDB2DEDD17F008FB70A /* EventDetailView.swift in Sources */,
 				509C88AA2DE28B93004AEA54 /* AuthenticationView.swift in Sources */,
-				508F8FD52DED0FF1008FB70A /* DirectGPT4Calendar.swift in Sources */,
 				508F8FDD2DEDEFC3008FB70A /* SmartScheduleOptimizer.swift in Sources */,
 				506F54A52DE29C3D00162589 /* ScheduleEvent.swift in Sources */,
 				509C88A42DE28AB5004AEA54 /* Event.swift in Sources */,
