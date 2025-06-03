@@ -2,13 +2,13 @@
 //  TymoreTheme.swift
 //  SwiftCalendar
 //
-//  ULTRA-MODERN: Sleek, cutting-edge dark theme system
+//  ELEGANT: Sophisticated dark theme - Black Butler aesthetic
 //
 
 import SwiftUI
 import Foundation
 
-// MARK: - Ultra-Modern Theme Manager
+// MARK: - Elegant Theme Manager
 class TymoreTheme: ObservableObject {
     @Published var isDarkMode: Bool = true
     
@@ -24,48 +24,48 @@ class TymoreTheme: ObservableObject {
     }
     
     var current: ThemeColors {
-        isDarkMode ? .ultraDark : .light
+        isDarkMode ? .elegantDark : .light
     }
 }
 
-// MARK: - Ultra-Modern Color Schemes
+// MARK: - Sophisticated Color Schemes
 struct ThemeColors {
-    // Ultra-dark background layers
+    // Elegant dark backgrounds
     let primaryBackground: Color
     let secondaryBackground: Color
     let tertiaryBackground: Color
     let surfaceBackground: Color
     let elevatedSurface: Color
     
-    // Text colors with more contrast
+    // Refined text colors
     let primaryText: Color
     let secondaryText: Color
     let tertiaryText: Color
     let accentText: Color
     
-    // Neon accent colors
+    // Minimal accent colors - very subtle
     let tymoreBlue: Color
     let tymoreSteel: Color
     let tymoreAccent: Color
-    let tymorePurple: Color      // New: Premium purple
-    let tymoreGlow: Color        // New: Glow effects
+    let tymorePurple: Color
+    let tymoreGlow: Color
     
-    // Semantic colors with glow
+    // Subtle semantic colors
     let success: Color
     let warning: Color
     let error: Color
     let info: Color
     
-    // Interactive elements with glassmorphism
+    // Clean interactive elements
     let buttonPrimary: Color
     let buttonSecondary: Color
     let cardBackground: Color
-    let glassBackground: Color   // New: Glassmorphism
+    let glassBackground: Color
     let borderColor: Color
-    let glowBorder: Color        // New: Glowing borders
+    let glowBorder: Color
     let separatorColor: Color
     
-    // Calendar with neon touches
+    // Refined calendar colors
     let workColor: Color
     let fitnessColor: Color
     let personalColor: Color
@@ -74,118 +74,118 @@ struct ThemeColors {
     let socialColor: Color
     let otherColor: Color
     
-    static let ultraDark = ThemeColors(
-        // ULTRA-DARK backgrounds - deeper than deep
+    static let elegantDark = ThemeColors(
+        // ELEGANT DARK - Pure sophistication
         primaryBackground: Color(hex: "000000"),        // Pure black
-        secondaryBackground: Color(hex: "0A0A0F"),      // Ultra-deep navy
-        tertiaryBackground: Color(hex: "12121A"),       // Deep charcoal
-        surfaceBackground: Color(hex: "1A1A26"),        // Elevated dark
-        elevatedSurface: Color(hex: "242430"),          // Floating elements
+        secondaryBackground: Color(hex: "0F0F0F"),      // Barely lighter black
+        tertiaryBackground: Color(hex: "1A1A1A"),       // Subtle gray
+        surfaceBackground: Color(hex: "242424"),        // Elevated surface
+        elevatedSurface: Color(hex: "2D2D2D"),          // Floating elements
         
-        // High-contrast text with glow potential
+        // Refined text with perfect contrast
         primaryText: Color(hex: "FFFFFF"),              // Pure white
-        secondaryText: Color(hex: "E1E5F0"),            // Cool white
-        tertiaryText: Color(hex: "9CA3AF"),             // Muted gray
-        accentText: Color(hex: "00E5FF"),               // Cyan accent text
+        secondaryText: Color(hex: "E5E5E5"),            // Soft white
+        tertiaryText: Color(hex: "999999"),             // Refined gray
+        accentText: Color(hex: "CCCCCC"),               // Subtle accent
         
-        // NEON brand colors - electric and modern
-        tymoreBlue: Color(hex: "0080FF"),               // Electric blue
-        tymoreSteel: Color(hex: "6366F1"),              // Indigo steel
-        tymoreAccent: Color(hex: "00E5FF"),             // Neon cyan
-        tymorePurple: Color(hex: "8B5CF6"),             // Premium purple
-        tymoreGlow: Color(hex: "00E5FF"),               // Glow color
+        // MINIMAL brand colors - very refined
+        tymoreBlue: Color(hex: "4A90E2"),               // Refined blue
+        tymoreSteel: Color(hex: "6B7280"),              // Subtle steel
+        tymoreAccent: Color(hex: "3B82F6"),             // Clean blue accent
+        tymorePurple: Color(hex: "8B5CF6"),             // Elegant purple
+        tymoreGlow: Color(hex: "4A90E2"),               // Subtle glow
         
-        // Vibrant semantic colors
-        success: Color(hex: "10B981"),                  // Modern green
-        warning: Color(hex: "F59E0B"),                  // Amber warning
-        error: Color(hex: "EF4444"),                    // Modern red
-        info: Color(hex: "06B6D4"),                     // Cyan info
+        // Understated semantic colors
+        success: Color(hex: "10B981"),                  // Clean green
+        warning: Color(hex: "F59E0B"),                  // Refined amber
+        error: Color(hex: "EF4444"),                    // Clean red
+        info: Color(hex: "3B82F6"),                     // Refined blue
         
-        // Glass and glow interactive elements
-        buttonPrimary: Color(hex: "0080FF"),
-        buttonSecondary: Color(hex: "6366F1"),
-        cardBackground: Color(hex: "1A1A26"),
-        glassBackground: Color(hex: "FFFFFF").opacity(0.05), // Glassmorphism
-        borderColor: Color(hex: "374151"),
-        glowBorder: Color(hex: "00E5FF"),               // Glowing borders
-        separatorColor: Color(hex: "374151"),
+        // Clean interactive elements
+        buttonPrimary: Color(hex: "4A90E2"),
+        buttonSecondary: Color(hex: "6B7280"),
+        cardBackground: Color(hex: "1A1A1A"),
+        glassBackground: Color(hex: "FFFFFF").opacity(0.02), // Very subtle glass
+        borderColor: Color(hex: "333333"),              // Subtle borders
+        glowBorder: Color(hex: "4A90E2"),               // Minimal glow
+        separatorColor: Color(hex: "333333"),
         
-        // NEON calendar categories
-        workColor: Color(hex: "EF4444"),                // Electric red
-        fitnessColor: Color(hex: "10B981"),             // Neon green
-        personalColor: Color(hex: "0080FF"),            // Electric blue
-        studyColor: Color(hex: "8B5CF6"),               // Purple
-        healthColor: Color(hex: "F59E0B"),              // Amber
-        socialColor: Color(hex: "EC4899"),              // Hot pink
-        otherColor: Color(hex: "6B7280")                // Cool gray
+        // REFINED calendar categories - muted elegance
+        workColor: Color(hex: "DC2626"),                // Refined red
+        fitnessColor: Color(hex: "059669"),             // Elegant green
+        personalColor: Color(hex: "2563EB"),            // Clean blue
+        studyColor: Color(hex: "7C3AED"),               // Refined purple
+        healthColor: Color(hex: "D97706"),              // Elegant orange
+        socialColor: Color(hex: "DB2777"),              // Refined pink
+        otherColor: Color(hex: "6B7280")                // Subtle gray
     )
     
     static let light = ThemeColors(
         // Clean light mode
         primaryBackground: Color(hex: "FFFFFF"),
-        secondaryBackground: Color(hex: "F9FAFB"),
-        tertiaryBackground: Color(hex: "F3F4F6"),
+        secondaryBackground: Color(hex: "FAFAFA"),
+        tertiaryBackground: Color(hex: "F5F5F5"),
         surfaceBackground: Color(hex: "FFFFFF"),
         elevatedSurface: Color(hex: "FFFFFF"),
         
-        primaryText: Color(hex: "111827"),
-        secondaryText: Color(hex: "4B5563"),
-        tertiaryText: Color(hex: "6B7280"),
-        accentText: Color(hex: "0080FF"),
+        primaryText: Color(hex: "000000"),
+        secondaryText: Color(hex: "666666"),
+        tertiaryText: Color(hex: "999999"),
+        accentText: Color(hex: "333333"),
         
-        tymoreBlue: Color(hex: "0080FF"),
-        tymoreSteel: Color(hex: "6366F1"),
-        tymoreAccent: Color(hex: "00E5FF"),
+        tymoreBlue: Color(hex: "4A90E2"),
+        tymoreSteel: Color(hex: "6B7280"),
+        tymoreAccent: Color(hex: "3B82F6"),
         tymorePurple: Color(hex: "8B5CF6"),
-        tymoreGlow: Color(hex: "00E5FF"),
+        tymoreGlow: Color(hex: "4A90E2"),
         
         success: Color(hex: "10B981"),
         warning: Color(hex: "F59E0B"),
         error: Color(hex: "EF4444"),
-        info: Color(hex: "06B6D4"),
+        info: Color(hex: "3B82F6"),
         
-        buttonPrimary: Color(hex: "0080FF"),
+        buttonPrimary: Color(hex: "4A90E2"),
         buttonSecondary: Color(hex: "6B7280"),
         cardBackground: Color(hex: "FFFFFF"),
         glassBackground: Color(hex: "FFFFFF"),
-        borderColor: Color(hex: "E5E7EB"),
-        glowBorder: Color(hex: "0080FF"),
-        separatorColor: Color(hex: "F3F4F6"),
+        borderColor: Color(hex: "E5E5E5"),
+        glowBorder: Color(hex: "4A90E2"),
+        separatorColor: Color(hex: "F0F0F0"),
         
-        workColor: Color(hex: "EF4444"),
-        fitnessColor: Color(hex: "10B981"),
-        personalColor: Color(hex: "0080FF"),
-        studyColor: Color(hex: "8B5CF6"),
-        healthColor: Color(hex: "F59E0B"),
-        socialColor: Color(hex: "EC4899"),
+        workColor: Color(hex: "DC2626"),
+        fitnessColor: Color(hex: "059669"),
+        personalColor: Color(hex: "2563EB"),
+        studyColor: Color(hex: "7C3AED"),
+        healthColor: Color(hex: "D97706"),
+        socialColor: Color(hex: "DB2777"),
         otherColor: Color(hex: "6B7280")
     )
 }
 
-// MARK: - Ultra-Modern Typography
+// MARK: - Elegant Typography
 struct TymoreTypography {
-    // Display fonts - more futuristic
-    static let displayLarge = Font.system(size: 36, weight: .black, design: .rounded)
-    static let displayMedium = Font.system(size: 30, weight: .heavy, design: .rounded)
-    static let displaySmall = Font.system(size: 26, weight: .bold, design: .rounded)
+    // Display fonts - clean and sophisticated
+    static let displayLarge = Font.system(size: 32, weight: .thin, design: .default)
+    static let displayMedium = Font.system(size: 28, weight: .ultraLight, design: .default)
+    static let displaySmall = Font.system(size: 24, weight: .light, design: .default)
     
-    // Headlines - sharper, more modern
-    static let headlineLarge = Font.system(size: 24, weight: .bold, design: .default)
-    static let headlineMedium = Font.system(size: 20, weight: .semibold, design: .default)
-    static let headlineSmall = Font.system(size: 17, weight: .semibold, design: .default)
+    // Headlines - refined weight
+    static let headlineLarge = Font.system(size: 22, weight: .medium, design: .default)
+    static let headlineMedium = Font.system(size: 18, weight: .medium, design: .default)
+    static let headlineSmall = Font.system(size: 16, weight: .medium, design: .default)
     
-    // Body text - optimized for dark reading
+    // Body text - optimized for elegance
     static let bodyLarge = Font.system(size: 17, weight: .regular, design: .default)
     static let bodyMedium = Font.system(size: 15, weight: .regular, design: .default)
     static let bodySmall = Font.system(size: 13, weight: .regular, design: .default)
     
-    // Labels - more pronounced
-    static let labelLarge = Font.system(size: 15, weight: .semibold, design: .default)
+    // Labels - subtle emphasis
+    static let labelLarge = Font.system(size: 15, weight: .medium, design: .default)
     static let labelMedium = Font.system(size: 13, weight: .medium, design: .default)
     static let labelSmall = Font.system(size: 11, weight: .medium, design: .default)
 }
 
-// MARK: - Ultra-Modern Spacing
+// MARK: - Refined Spacing
 struct TymoreSpacing {
     static let xxs: CGFloat = 2
     static let xs: CGFloat = 4
@@ -197,67 +197,53 @@ struct TymoreSpacing {
     static let xxxl: CGFloat = 64
 }
 
-// MARK: - Modern Radius System
+// MARK: - Clean Radius System
 struct TymoreRadius {
-    static let xs: CGFloat = 6
-    static let sm: CGFloat = 10
-    static let md: CGFloat = 14
-    static let lg: CGFloat = 18
-    static let xl: CGFloat = 24
-    static let xxl: CGFloat = 32
+    static let xs: CGFloat = 4
+    static let sm: CGFloat = 8
+    static let md: CGFloat = 12
+    static let lg: CGFloat = 16
+    static let xl: CGFloat = 20
+    static let xxl: CGFloat = 24
     static let round: CGFloat = 50
 }
 
-// MARK: - Advanced Shadow & Glow System
+// MARK: - Subtle Shadow System
 struct TymoreShadow {
     static let none = Shadow(color: Color.clear, radius: 0, x: 0, y: 0)
     
     static let subtle = Shadow(
-        color: Color.black.opacity(0.15),
+        color: Color.black.opacity(0.1),
         radius: 4,
         x: 0,
         y: 2
     )
     
     static let soft = Shadow(
-        color: Color.black.opacity(0.25),
-        radius: 12,
+        color: Color.black.opacity(0.15),
+        radius: 8,
         x: 0,
         y: 4
     )
     
     static let medium = Shadow(
-        color: Color.black.opacity(0.35),
-        radius: 20,
+        color: Color.black.opacity(0.2),
+        radius: 12,
+        x: 0,
+        y: 6
+    )
+    
+    static let strong = Shadow(
+        color: Color.black.opacity(0.25),
+        radius: 16,
         x: 0,
         y: 8
     )
     
-    static let strong = Shadow(
-        color: Color.black.opacity(0.5),
-        radius: 30,
-        x: 0,
-        y: 12
-    )
-    
-    // NEW: Glow effects
-    static let glow = Shadow(
-        color: Color(hex: "00E5FF").opacity(0.4),
-        radius: 16,
-        x: 0,
-        y: 0
-    )
-    
-    static let strongGlow = Shadow(
-        color: Color(hex: "00E5FF").opacity(0.6),
-        radius: 24,
-        x: 0,
-        y: 0
-    )
-    
-    static let purpleGlow = Shadow(
-        color: Color(hex: "8B5CF6").opacity(0.5),
-        radius: 20,
+    // Minimal glow for focus states only
+    static let focus = Shadow(
+        color: Color(hex: "4A90E2").opacity(0.3),
+        radius: 8,
         x: 0,
         y: 0
     )
@@ -270,132 +256,77 @@ struct Shadow {
     let y: CGFloat
 }
 
-// MARK: - Advanced View Modifiers
+// MARK: - Elegant View Modifiers
 
-struct UltraModernCard: ViewModifier {
+struct ElegantCard: ViewModifier {
     @EnvironmentObject var theme: TymoreTheme
-    let hasGlow: Bool
+    let isElevated: Bool
     
-    init(hasGlow: Bool = false) {
-        self.hasGlow = hasGlow
+    init(isElevated: Bool = false) {
+        self.isElevated = isElevated
     }
     
     func body(content: Content) -> some View {
         content
             .background(
-                ZStack {
-                    // Main card background
-                    RoundedRectangle(cornerRadius: TymoreRadius.lg)
-                        .fill(theme.current.cardBackground)
-                    
-                    // Glassmorphism overlay
-                    RoundedRectangle(cornerRadius: TymoreRadius.lg)
-                        .fill(theme.current.glassBackground)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: TymoreRadius.lg))
-                    
-                    // Subtle border
-                    RoundedRectangle(cornerRadius: TymoreRadius.lg)
-                        .stroke(
-                            LinearGradient(
-                                colors: [
-                                    theme.current.borderColor.opacity(0.8),
-                                    theme.current.borderColor.opacity(0.2)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1
-                        )
-                }
+                RoundedRectangle(cornerRadius: TymoreRadius.lg)
+                    .fill(isElevated ? theme.current.elevatedSurface : theme.current.cardBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: TymoreRadius.lg)
+                            .stroke(theme.current.borderColor, lineWidth: 0.5)
+                    )
             )
             .shadow(
-                color: hasGlow ? theme.current.tymoreGlow.opacity(0.3) : Color.black.opacity(0.3),
-                radius: hasGlow ? 16 : 12,
+                color: Color.black.opacity(isElevated ? 0.3 : 0.1),
+                radius: isElevated ? 12 : 6,
                 x: 0,
-                y: hasGlow ? 0 : 6
+                y: isElevated ? 8 : 3
             )
     }
 }
 
-struct NeonButton: ViewModifier {
+struct ElegantButton: ButtonStyle {
     let variant: ButtonVariant
     @EnvironmentObject var theme: TymoreTheme
-    @State private var isPressed = false
     
     enum ButtonVariant {
-        case primary, secondary, ghost, destructive, neon
+        case primary, secondary, ghost, destructive
     }
     
-    func body(content: Content) -> some View {
-        content
-            .font(TymoreTypography.labelLarge)
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(TymoreTypography.labelMedium)
             .foregroundColor(foregroundColor)
             .padding(.horizontal, TymoreSpacing.lg)
             .padding(.vertical, TymoreSpacing.md)
-            .background(backgroundView)
+            .background(backgroundColor)
             .cornerRadius(TymoreRadius.md)
             .overlay(
                 RoundedRectangle(cornerRadius: TymoreRadius.md)
-                    .stroke(borderColor, lineWidth: variant == .neon ? 2 : 1)
+                    .stroke(borderColor, lineWidth: 0.5)
             )
-            .shadow(
-                color: shadowColor,
-                radius: isPressed ? 8 : 12,
-                x: 0,
-                y: isPressed ? 2 : 4
-            )
-            .scaleEffect(isPressed ? 0.96 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isPressed)
-            .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
-                isPressed = pressing
-            }, perform: {})
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .opacity(configuration.isPressed ? 0.9 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
     }
     
-    private var backgroundView: some View {
-        Group {
-            switch variant {
-            case .primary:
-                LinearGradient(
-                    colors: [theme.current.tymoreBlue, theme.current.tymoreSteel],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            case .neon:
-                ZStack {
-                    RoundedRectangle(cornerRadius: TymoreRadius.md)
-                        .fill(theme.current.cardBackground)
-                    
-                    LinearGradient(
-                        colors: [
-                            theme.current.tymoreAccent.opacity(0.3),
-                            theme.current.tymorePurple.opacity(0.2)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                }
-            case .secondary:
-                LinearGradient(
-                    colors: [theme.current.tertiaryBackground, theme.current.surfaceBackground],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            case .ghost:
-                Color.clear
-            case .destructive:
-                LinearGradient(
-                    colors: [theme.current.error, theme.current.error.opacity(0.8)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            }
+    private var backgroundColor: Color {
+        switch variant {
+        case .primary:
+            return theme.current.buttonPrimary
+        case .secondary:
+            return theme.current.elevatedSurface
+        case .ghost:
+            return Color.clear
+        case .destructive:
+            return theme.current.error
         }
     }
     
     private var foregroundColor: Color {
         switch variant {
-        case .primary, .destructive, .neon:
-            return .white
+        case .primary, .destructive:
+            return Color.white
         case .secondary:
             return theme.current.primaryText
         case .ghost:
@@ -405,45 +336,15 @@ struct NeonButton: ViewModifier {
     
     private var borderColor: Color {
         switch variant {
-        case .neon:
-            return theme.current.tymoreAccent
-        case .primary, .secondary, .destructive, .ghost:
+        case .primary, .destructive:
             return Color.clear
-        }
-    }
-    
-    private var shadowColor: Color {
-        switch variant {
-        case .neon:
-            return theme.current.tymoreAccent.opacity(0.5)
-        case .primary:
-            return theme.current.tymoreBlue.opacity(0.4)
-        case .destructive:
-            return theme.current.error.opacity(0.4)
-        default:
-            return Color.black.opacity(0.3)
+        case .secondary, .ghost:
+            return theme.current.borderColor
         }
     }
 }
 
-struct FloatingElement: ViewModifier {
-    @State private var isFloating = false
-    
-    func body(content: Content) -> some View {
-        content
-            .offset(y: isFloating ? -2 : 0)
-            .animation(
-                Animation.easeInOut(duration: 2.0)
-                    .repeatForever(autoreverses: true),
-                value: isFloating
-            )
-            .onAppear {
-                isFloating = true
-            }
-    }
-}
-
-// MARK: - Ultra-Modern Extensions
+// MARK: - Utility Extensions
 extension Color {
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
@@ -471,14 +372,14 @@ extension Color {
     }
 }
 
-// MARK: - Ultra-Modern View Extensions
+// MARK: - Elegant View Extensions
 extension View {
-    func ultraModernCard(hasGlow: Bool = false) -> some View {
-        self.modifier(UltraModernCard(hasGlow: hasGlow))
+    func elegantCard(elevated: Bool = false) -> some View {
+        self.modifier(ElegantCard(isElevated: elevated))
     }
     
-    func neonButton(_ variant: NeonButton.ButtonVariant = .primary) -> some View {
-        self.modifier(NeonButton(variant: variant))
+    func elegantButton(_ variant: ElegantButton.ButtonVariant = .primary) -> some View {
+        self.buttonStyle(ElegantButton(variant: variant))
     }
     
     func tymoreShadow(_ shadow: Shadow) -> some View {
@@ -490,28 +391,8 @@ extension View {
         )
     }
     
-    func floating() -> some View {
-        self.modifier(FloatingElement())
-    }
-    
-    func neonGlow(_ color: Color = Color(hex: "00E5FF"), radius: CGFloat = 16) -> some View {
-        self.shadow(color: color.opacity(0.6), radius: radius, x: 0, y: 0)
-    }
-    
-    func glassmorphism() -> some View {
-        self
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: TymoreRadius.lg))
-            .overlay(
-                RoundedRectangle(cornerRadius: TymoreRadius.lg)
-                    .stroke(
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.2), Color.white.opacity(0.05)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
-                    )
-            )
+    func subtleGlow(_ color: Color = Color(hex: "4A90E2"), radius: CGFloat = 8) -> some View {
+        self.shadow(color: color.opacity(0.2), radius: radius, x: 0, y: 0)
     }
 }
 
@@ -520,12 +401,12 @@ struct TymoreCardStyle: ViewModifier {
     @EnvironmentObject var theme: TymoreTheme
     
     func body(content: Content) -> some View {
-        content.ultraModernCard()
+        content.elegantCard()
     }
 }
 
 extension View {
     func tymoreCard() -> some View {
-        self.ultraModernCard()
+        self.elegantCard()
     }
 }

@@ -2,7 +2,7 @@
 //  SwiftCalendarApp.swift
 //  SwiftCalendar
 //
-//  FIXED: Removed redeclaration conflicts
+//  ELEGANT: Sophisticated app entry point
 //
 
 import SwiftUI
@@ -14,7 +14,7 @@ struct SwiftCalendarApp: App {
     
     init() {
         FirebaseApp.configure()
-        setupGlobalAppearance()
+        setupElegantGlobalAppearance()
     }
     
     var body: some Scene {
@@ -25,20 +25,29 @@ struct SwiftCalendarApp: App {
         }
     }
     
-    private func setupGlobalAppearance() {
-        // Set up global navigation appearance
+    private func setupElegantGlobalAppearance() {
+        // Set up sophisticated navigation appearance
         let navAppearance = UINavigationBarAppearance()
         navAppearance.configureWithOpaqueBackground()
         navAppearance.backgroundColor = UIColor(TymoreTheme.shared.current.secondaryBackground)
+        navAppearance.shadowColor = UIColor(TymoreTheme.shared.current.separatorColor)
+        
+        // Refined title styling
         navAppearance.titleTextAttributes = [
-            .foregroundColor: UIColor(TymoreTheme.shared.current.primaryText)
+            .foregroundColor: UIColor(TymoreTheme.shared.current.primaryText),
+            .font: UIFont.systemFont(ofSize: 18, weight: .medium)
         ]
         navAppearance.largeTitleTextAttributes = [
-            .foregroundColor: UIColor(TymoreTheme.shared.current.primaryText)
+            .foregroundColor: UIColor(TymoreTheme.shared.current.primaryText),
+            .font: UIFont.systemFont(ofSize: 32, weight: .light)
         ]
         
         UINavigationBar.appearance().standardAppearance = navAppearance
         UINavigationBar.appearance().scrollEdgeAppearance = navAppearance
         UINavigationBar.appearance().compactAppearance = navAppearance
+        
+        // Elegant form styling
+        UITextField.appearance().tintColor = UIColor(TymoreTheme.shared.current.tymoreBlue)
+        UITextView.appearance().tintColor = UIColor(TymoreTheme.shared.current.tymoreBlue)
     }
 }

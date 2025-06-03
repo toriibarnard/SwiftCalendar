@@ -2,7 +2,7 @@
 //  ContentView.swift
 //  SwiftCalendar
 //
-//  FIXED: Removed ambiguous init issues
+//  ELEGANT: Sophisticated main interface - Black Butler aesthetic
 //
 
 import SwiftUI
@@ -17,7 +17,7 @@ struct ContentView: View {
     var body: some View {
         Group {
             if authViewModel.isAuthenticated {
-                // Main app content with tab view
+                // Elegant main app with sophisticated tab view
                 TabView(selection: $selectedTab) {
                     CalendarView(scheduleManager: scheduleManager)
                         .tabItem {
@@ -31,17 +31,17 @@ struct ContentView: View {
                         }
                         .tag(1)
                     
-                    TymoreProfileView()
+                    ElegantProfileView()
                         .tabItem {
-                            Label("Profile", systemImage: "person.fill")
+                            Label("Profile", systemImage: "person")
                         }
                         .tag(2)
                 }
-                .tint(theme.current.tymoreBlue) // Custom tint color
+                .tint(theme.current.tymoreBlue)
                 .background(theme.current.primaryBackground)
                 .preferredColorScheme(theme.isDarkMode ? .dark : .light)
                 .onAppear {
-                    setupTabBarAppearance()
+                    setupElegantTabBarAppearance()
                     
                     // Run migration once when app loads
                     Task {
@@ -60,30 +60,31 @@ struct ContentView: View {
                     Text(scheduleManager.errorMessage)
                 }
             } else {
-                // Show authentication view when not logged in
+                // Elegant authentication view
                 AuthenticationView()
                     .preferredColorScheme(theme.isDarkMode ? .dark : .light)
             }
         }
     }
     
-    private func setupTabBarAppearance() {
+    private func setupElegantTabBarAppearance() {
         let appearance = UITabBarAppearance()
         
         if theme.isDarkMode {
             appearance.configureWithOpaqueBackground()
             appearance.backgroundColor = UIColor(theme.current.secondaryBackground)
             
-            // Selected item
+            // Refined tab appearance
             appearance.stackedLayoutAppearance.selected.iconColor = UIColor(theme.current.tymoreBlue)
             appearance.stackedLayoutAppearance.selected.titleTextAttributes = [
-                .foregroundColor: UIColor(theme.current.tymoreBlue)
+                .foregroundColor: UIColor(theme.current.tymoreBlue),
+                .font: UIFont.systemFont(ofSize: 10, weight: .medium)
             ]
             
-            // Normal item
             appearance.stackedLayoutAppearance.normal.iconColor = UIColor(theme.current.tertiaryText)
             appearance.stackedLayoutAppearance.normal.titleTextAttributes = [
-                .foregroundColor: UIColor(theme.current.tertiaryText)
+                .foregroundColor: UIColor(theme.current.tertiaryText),
+                .font: UIFont.systemFont(ofSize: 10, weight: .medium)
             ]
         } else {
             appearance.configureWithDefaultBackground()
@@ -94,40 +95,43 @@ struct ContentView: View {
     }
 }
 
-struct TymoreProfileView: View {
+struct ElegantProfileView: View {
     @EnvironmentObject var authViewModel: AuthenticationViewModel
     @EnvironmentObject var theme: TymoreTheme
     
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: TymoreSpacing.xl) {
-                    // Profile Header
-                    VStack(spacing: TymoreSpacing.lg) {
-                        // Profile Picture with Tymore styling
+                VStack(spacing: TymoreSpacing.xxxl) {
+                    // Elegant profile header
+                    VStack(spacing: TymoreSpacing.xl) {
+                        // Refined profile picture
                         ZStack {
                             Circle()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [theme.current.tymoreBlue, theme.current.tymoreSteel],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
+                                .fill(theme.current.elevatedSurface)
                                 .frame(width: 100, height: 100)
+                                .overlay(
+                                    Circle()
+                                        .stroke(theme.current.borderColor, lineWidth: 1)
+                                )
+                            
+                            Circle()
+                                .fill(theme.current.tymoreBlue.opacity(0.1))
+                                .frame(width: 80, height: 80)
                             
                             Image(systemName: "person.fill")
-                                .font(.system(size: 40, weight: .medium))
-                                .foregroundColor(.white)
+                                .font(.system(size: 32, weight: .light))
+                                .foregroundColor(theme.current.tymoreBlue)
                         }
                         .tymoreShadow(TymoreShadow.medium)
                         
-                        // User Info
+                        // User information
                         if let user = authViewModel.currentUser {
                             VStack(spacing: TymoreSpacing.sm) {
                                 if let displayName = user.displayName, !displayName.isEmpty {
                                     Text(displayName)
                                         .font(TymoreTypography.displaySmall)
+                                        .fontWeight(.light)
                                         .foregroundColor(theme.current.primaryText)
                                 }
                                 
@@ -137,65 +141,60 @@ struct TymoreProfileView: View {
                             }
                         }
                     }
-                    .padding(.top, TymoreSpacing.lg)
+                    .padding(.top, TymoreSpacing.xl)
                     
-                    // Settings Section
-                    VStack(spacing: TymoreSpacing.md) {
-                        // Theme Toggle - Featured prominently
-                        ProfileSettingCard(
-                            icon: theme.isDarkMode ? "moon.fill" : "sun.max.fill",
+                    // Elegant settings section
+                    VStack(spacing: TymoreSpacing.lg) {
+                        // Theme toggle - prominently featured
+                        ElegantSettingCard(
+                            icon: theme.isDarkMode ? "moon" : "sun.max",
                             title: "Appearance",
                             subtitle: theme.isDarkMode ? "Dark Mode" : "Light Mode",
-                            iconColor: theme.current.tymoreAccent
+                            iconColor: theme.current.tymoreBlue
                         ) {
-                            HStack {
-                                Text(theme.isDarkMode ? "🌙" : "☀️")
-                                    .font(.title2)
-                                
-                                Toggle("", isOn: Binding(
-                                    get: { theme.isDarkMode },
-                                    set: { _ in
-                                        withAnimation(.easeInOut(duration: 0.3)) {
-                                            theme.toggleTheme()
-                                        }
+                            Toggle("", isOn: Binding(
+                                get: { theme.isDarkMode },
+                                set: { _ in
+                                    withAnimation(.easeInOut(duration: 0.3)) {
+                                        theme.toggleTheme()
                                     }
-                                ))
-                                .tint(theme.current.tymoreBlue)
-                            }
+                                }
+                            ))
+                            .tint(theme.current.tymoreBlue)
                         }
                         
-                        // Time Zone Setting
+                        // Time zone setting
                         if let user = authViewModel.currentUser {
-                            ProfileSettingCard(
+                            ElegantSettingCard(
                                 icon: "globe",
                                 title: "Time Zone",
                                 subtitle: user.preferences.timeZone,
-                                iconColor: theme.current.tymoreBlue
+                                iconColor: theme.current.tymoreSteel
                             ) {
                                 Image(systemName: "chevron.right")
                                     .font(.caption)
                                     .foregroundColor(theme.current.tertiaryText)
                             }
                             
-                            // Notifications Setting
-                            ProfileSettingCard(
-                                icon: "bell.fill",
+                            // Notifications setting
+                            ElegantSettingCard(
+                                icon: "bell",
                                 title: "Notifications",
                                 subtitle: user.preferences.notificationsEnabled ? "Enabled" : "Disabled",
                                 iconColor: theme.current.success
                             ) {
                                 Toggle("", isOn: .constant(user.preferences.notificationsEnabled))
                                     .tint(theme.current.tymoreBlue)
-                                    .disabled(true) // Make read-only for now
+                                    .disabled(true)
                             }
                         }
                         
-                        // AI Assistant Info
-                        ProfileSettingCard(
+                        // AI assistant info
+                        ElegantSettingCard(
                             icon: "brain.head.profile",
                             title: "AI Assistant",
-                            subtitle: "Ty is ready to optimize your schedule",
-                            iconColor: theme.current.tymoreSteel
+                            subtitle: "Ty is ready to help",
+                            iconColor: theme.current.tymorePurple
                         ) {
                             Image(systemName: "chevron.right")
                                 .font(.caption)
@@ -203,48 +202,42 @@ struct TymoreProfileView: View {
                         }
                     }
                     
-                    Spacer(minLength: TymoreSpacing.xl)
+                    Spacer(minLength: TymoreSpacing.xxxl)
                     
-                    // Sign Out Button
+                    // Elegant sign out button
                     Button(action: {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             authViewModel.signOut()
                         }
                     }) {
-                        HStack(spacing: TymoreSpacing.sm) {
+                        HStack(spacing: TymoreSpacing.md) {
                             Image(systemName: "rectangle.portrait.and.arrow.right")
-                                .font(TymoreTypography.labelLarge)
+                                .font(.system(size: 16, weight: .medium))
                             Text("Sign Out")
                                 .font(TymoreTypography.labelLarge)
-                                .fontWeight(.semibold)
+                                .fontWeight(.medium)
                         }
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
                         .background(
-                            LinearGradient(
-                                colors: [theme.current.error, theme.current.error.opacity(0.8)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
+                            RoundedRectangle(cornerRadius: TymoreRadius.md)
+                                .fill(theme.current.error)
                         )
-                        .cornerRadius(TymoreRadius.md)
                         .tymoreShadow(TymoreShadow.soft)
                     }
-                    .padding(.horizontal, TymoreSpacing.lg)
+                    .padding(.horizontal, TymoreSpacing.xl)
                 }
-                .padding(.horizontal, TymoreSpacing.lg)
+                .padding(.horizontal, TymoreSpacing.xl)
             }
             .background(theme.current.primaryBackground)
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(theme.current.secondaryBackground, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
         }
     }
 }
 
-struct ProfileSettingCard<Content: View>: View {
+struct ElegantSettingCard<Content: View>: View {
     let icon: String
     let title: String
     let subtitle: String
@@ -253,15 +246,19 @@ struct ProfileSettingCard<Content: View>: View {
     @EnvironmentObject var theme: TymoreTheme
     
     var body: some View {
-        HStack(spacing: TymoreSpacing.md) {
-            // Icon with background
+        HStack(spacing: TymoreSpacing.lg) {
+            // Refined icon background
             ZStack {
                 RoundedRectangle(cornerRadius: TymoreRadius.sm)
-                    .fill(iconColor.opacity(0.15))
+                    .fill(iconColor.opacity(0.1))
                     .frame(width: 40, height: 40)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: TymoreRadius.sm)
+                            .stroke(iconColor.opacity(0.2), lineWidth: 0.5)
+                    )
                 
                 Image(systemName: icon)
-                    .font(.system(size: 18, weight: .medium))
+                    .font(.system(size: 16, weight: .medium))
                     .foregroundColor(iconColor)
             }
             
@@ -269,6 +266,7 @@ struct ProfileSettingCard<Content: View>: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(TymoreTypography.bodyLarge)
+                    .fontWeight(.medium)
                     .foregroundColor(theme.current.primaryText)
                 
                 Text(subtitle)
@@ -281,8 +279,8 @@ struct ProfileSettingCard<Content: View>: View {
             // Trailing content
             trailing
         }
-        .padding(TymoreSpacing.md)
-        .tymoreCard()
+        .padding(TymoreSpacing.lg)
+        .elegantCard()
     }
 }
 

@@ -2,7 +2,7 @@
 //  CalendarView.swift
 //  SwiftCalendar
 //
-//  ULTRA-MODERN: Futuristic calendar interface
+//  ELEGANT: Sophisticated calendar - Black Butler aesthetic
 //
 
 import SwiftUI
@@ -22,39 +22,27 @@ struct CalendarView: View {
     
     var body: some View {
         NavigationView {
-            ZStack {
-                // Ultra-dark background
-                LinearGradient(
-                    colors: [
-                        theme.current.primaryBackground,
-                        theme.current.secondaryBackground
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
+            VStack(spacing: 0) {
+                // Elegant calendar header
+                ElegantCalendarHeader(
+                    selectedMonth: $selectedMonth,
+                    onWeekTap: { showingWeekView = true },
+                    onAddTap: { showingAddEvent = true }
                 )
-                .ignoresSafeArea()
                 
-                VStack(spacing: 0) {
-                    // Futuristic calendar header
-                    FuturisticCalendarHeader(
-                        selectedMonth: $selectedMonth,
-                        onWeekTap: { showingWeekView = true },
-                        onAddTap: { showingAddEvent = true }
-                    )
-                    
-                    // Neural calendar grid
-                    NeuralCalendarGrid(
-                        selectedMonth: selectedMonth,
-                        selectedDate: $selectedDate,
-                        scheduleManager: scheduleManager
-                    )
-                    
-                    Spacer()
-                }
+                // Refined calendar grid
+                RefinedCalendarGrid(
+                    selectedMonth: selectedMonth,
+                    selectedDate: $selectedDate,
+                    scheduleManager: scheduleManager
+                )
+                
+                Spacer()
             }
+            .background(theme.current.primaryBackground)
             .navigationBarHidden(true)
             .sheet(isPresented: $showingAddEvent) {
-                FuturisticAddEventView(scheduleManager: scheduleManager, isPresented: $showingAddEvent)
+                ElegantAddEventView(scheduleManager: scheduleManager, isPresented: $showingAddEvent)
             }
             .sheet(isPresented: $showingWeekView) {
                 WeekView(scheduleManager: scheduleManager)
@@ -66,7 +54,7 @@ struct CalendarView: View {
     }
 }
 
-struct FuturisticCalendarHeader: View {
+struct ElegantCalendarHeader: View {
     @Binding var selectedMonth: Date
     let onWeekTap: () -> Void
     let onAddTap: () -> Void
@@ -81,107 +69,77 @@ struct FuturisticCalendarHeader: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: TymoreSpacing.xl) {
-                // Neural navigation button
+                // Refined navigation button
                 Button(action: previousMonth) {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(theme.current.tymoreAccent)
-                        .frame(width: 50, height: 50)
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(theme.current.primaryText)
+                        .frame(width: 44, height: 44)
                         .background(
-                            ZStack {
-                                Circle()
-                                    .fill(theme.current.elevatedSurface)
-                                    .background(.thinMaterial, in: Circle())
-                                
-                                Circle()
-                                    .stroke(
-                                        LinearGradient(
-                                            colors: [theme.current.tymoreAccent, theme.current.tymorePurple],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        ),
-                                        lineWidth: 2
-                                    )
-                            }
+                            Circle()
+                                .fill(theme.current.elevatedSurface)
+                                .overlay(
+                                    Circle()
+                                        .stroke(theme.current.borderColor, lineWidth: 0.5)
+                                )
                         )
-                        .neonGlow(theme.current.tymoreAccent, radius: 8)
+                        .tymoreShadow(TymoreShadow.subtle)
                 }
                 
                 Spacer()
                 
-                // Neural month display
-                VStack(spacing: 4) {
+                // Elegant month display
+                VStack(spacing: 2) {
                     Text(selectedMonth, formatter: monthFormatter)
                         .font(TymoreTypography.headlineLarge)
-                        .fontWeight(.black)
-                        .tracking(1)
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [theme.current.tymoreAccent, theme.current.tymorePurple],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .neonGlow(theme.current.tymoreAccent, radius: 6)
+                        .fontWeight(.medium)
+                        .foregroundColor(theme.current.primaryText)
                     
-                    Text("NEURAL CALENDAR")
+                    Text("Calendar")
                         .font(TymoreTypography.labelSmall)
-                        .fontWeight(.bold)
-                        .tracking(2)
-                        .foregroundColor(theme.current.accentText)
+                        .foregroundColor(theme.current.tertiaryText)
+                        .tracking(1)
                 }
                 
                 Spacer()
                 
                 Button(action: nextMonth) {
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(theme.current.tymoreAccent)
-                        .frame(width: 50, height: 50)
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(theme.current.primaryText)
+                        .frame(width: 44, height: 44)
                         .background(
-                            ZStack {
-                                Circle()
-                                    .fill(theme.current.elevatedSurface)
-                                    .background(.thinMaterial, in: Circle())
-                                
-                                Circle()
-                                    .stroke(
-                                        LinearGradient(
-                                            colors: [theme.current.tymoreAccent, theme.current.tymorePurple],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        ),
-                                        lineWidth: 2
-                                    )
-                            }
+                            Circle()
+                                .fill(theme.current.elevatedSurface)
+                                .overlay(
+                                    Circle()
+                                        .stroke(theme.current.borderColor, lineWidth: 0.5)
+                                )
                         )
-                        .neonGlow(theme.current.tymoreAccent, radius: 8)
+                        .tymoreShadow(TymoreShadow.subtle)
                 }
             }
             
-            // Neural action buttons
+            // Refined action buttons
             HStack(spacing: TymoreSpacing.lg) {
                 Button(action: onWeekTap) {
                     HStack(spacing: TymoreSpacing.sm) {
                         Image(systemName: "calendar.day.timeline.left")
-                            .font(.system(size: 16, weight: .semibold))
-                        Text("WEEK VIEW")
+                            .font(.system(size: 14, weight: .medium))
+                        Text("Week View")
                             .font(TymoreTypography.labelMedium)
-                            .fontWeight(.bold)
-                            .tracking(0.5)
+                            .fontWeight(.medium)
                     }
-                    .foregroundColor(theme.current.accentText)
+                    .foregroundColor(theme.current.secondaryText)
                     .padding(.horizontal, TymoreSpacing.lg)
                     .padding(.vertical, TymoreSpacing.md)
                     .background(
-                        ZStack {
-                            RoundedRectangle(cornerRadius: TymoreRadius.lg)
-                                .fill(theme.current.elevatedSurface)
-                                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: TymoreRadius.lg))
-                            
-                            RoundedRectangle(cornerRadius: TymoreRadius.lg)
-                                .stroke(theme.current.borderColor, lineWidth: 1)
-                        }
+                        RoundedRectangle(cornerRadius: TymoreRadius.md)
+                            .fill(theme.current.elevatedSurface)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: TymoreRadius.md)
+                                    .stroke(theme.current.borderColor, lineWidth: 0.5)
+                            )
                     )
                 }
                 
@@ -189,91 +147,58 @@ struct FuturisticCalendarHeader: View {
                 
                 Button(action: onAddTap) {
                     HStack(spacing: TymoreSpacing.sm) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 16, weight: .semibold))
-                            .neonGlow(.white, radius: 4)
-                        Text("CREATE EVENT")
+                        Image(systemName: "plus")
+                            .font(.system(size: 14, weight: .medium))
+                        Text("Add Event")
                             .font(TymoreTypography.labelMedium)
-                            .fontWeight(.black)
-                            .tracking(0.5)
+                            .fontWeight(.medium)
                     }
                     .foregroundColor(.white)
                     .padding(.horizontal, TymoreSpacing.lg)
                     .padding(.vertical, TymoreSpacing.md)
                     .background(
-                        ZStack {
-                            RoundedRectangle(cornerRadius: TymoreRadius.lg)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [theme.current.tymoreBlue, theme.current.tymorePurple],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                            
-                            RoundedRectangle(cornerRadius: TymoreRadius.lg)
-                                .stroke(
-                                    LinearGradient(
-                                        colors: [Color.white.opacity(0.4), Color.clear],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
-                                    lineWidth: 1
-                                )
-                        }
+                        RoundedRectangle(cornerRadius: TymoreRadius.md)
+                            .fill(theme.current.tymoreBlue)
                     )
-                    .neonGlow(theme.current.tymoreBlue, radius: 12)
+                    .tymoreShadow(TymoreShadow.soft)
                 }
             }
             .padding(.top, TymoreSpacing.lg)
         }
         .padding(TymoreSpacing.xl)
         .background(
-            ZStack {
-                Rectangle()
-                    .fill(theme.current.secondaryBackground)
-                    .background(.ultraThinMaterial)
-                
-                Rectangle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                theme.current.tymoreAccent.opacity(0.1),
-                                Color.clear,
-                                theme.current.tymorePurple.opacity(0.1)
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .frame(height: 2)
-                    .neonGlow(theme.current.tymoreAccent, radius: 4)
-//                alignment: .bottom
-            }
+            Rectangle()
+                .fill(theme.current.secondaryBackground)
+                .overlay(
+                    Rectangle()
+                        .fill(theme.current.separatorColor)
+                        .frame(height: 0.5),
+                    alignment: .bottom
+                )
         )
     }
     
     private func previousMonth() {
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+        withAnimation(.easeInOut(duration: 0.3)) {
             selectedMonth = Calendar.current.date(byAdding: .month, value: -1, to: selectedMonth) ?? selectedMonth
         }
     }
     
     private func nextMonth() {
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+        withAnimation(.easeInOut(duration: 0.3)) {
             selectedMonth = Calendar.current.date(byAdding: .month, value: 1, to: selectedMonth) ?? selectedMonth
         }
     }
 }
 
-struct NeuralCalendarGrid: View {
+struct RefinedCalendarGrid: View {
     let selectedMonth: Date
     @Binding var selectedDate: Date?
     @ObservedObject var scheduleManager: ScheduleManager
     @EnvironmentObject var theme: TymoreTheme
     
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
-    private let dayLabels = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 2), count: 7)
+    private let dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     
     var monthDays: [Date?] {
         let calendar = Calendar.current
@@ -292,36 +217,35 @@ struct NeuralCalendarGrid: View {
     
     var body: some View {
         VStack(spacing: TymoreSpacing.md) {
-            // Neural day labels
+            // Refined day labels
             HStack(spacing: 0) {
                 ForEach(dayLabels, id: \.self) { day in
                     Text(day)
                         .font(TymoreTypography.labelMedium)
-                        .fontWeight(.black)
-                        .tracking(1)
-                        .foregroundColor(theme.current.accentText)
+                        .fontWeight(.medium)
+                        .foregroundColor(theme.current.tertiaryText)
                         .frame(maxWidth: .infinity)
                 }
             }
             .padding(.horizontal, TymoreSpacing.lg)
             .padding(.vertical, TymoreSpacing.sm)
             
-            // Neural calendar grid
-            LazyVGrid(columns: columns, spacing: 4) {
+            // Elegant calendar grid
+            LazyVGrid(columns: columns, spacing: 2) {
                 ForEach(Array(monthDays.enumerated()), id: \.offset) { _, date in
                     if let date = date {
-                        NeuralDayCell(
+                        RefinedDayCell(
                             date: date,
                             scheduleManager: scheduleManager,
                             onTap: {
-                                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                withAnimation(.easeInOut(duration: 0.2)) {
                                     selectedDate = date
                                 }
                             }
                         )
                     } else {
                         Color.clear
-                            .frame(height: 100)
+                            .frame(height: 90)
                     }
                 }
             }
@@ -330,7 +254,7 @@ struct NeuralCalendarGrid: View {
     }
 }
 
-struct NeuralDayCell: View {
+struct RefinedDayCell: View {
     let date: Date
     @ObservedObject var scheduleManager: ScheduleManager
     let onTap: () -> Void
@@ -355,29 +279,18 @@ struct NeuralDayCell: View {
     }
     
     var body: some View {
-        VStack(spacing: 6) {
-            // Neural day number
+        VStack(spacing: 4) {
+            // Elegant day number
             ZStack {
                 if isToday {
                     Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [
-                                    theme.current.tymoreAccent,
-                                    theme.current.tymorePurple
-                                ],
-                                center: .center,
-                                startRadius: 5,
-                                endRadius: 20
-                            )
-                        )
-                        .frame(width: 36, height: 36)
-                        .neonGlow(theme.current.tymoreAccent, radius: 8)
-                        .floating()
+                        .fill(theme.current.tymoreBlue)
+                        .frame(width: 32, height: 32)
+                        .tymoreShadow(TymoreShadow.soft)
                 }
                 
                 Text("\(Calendar.current.component(.day, from: date))")
-                    .font(.system(size: 16, weight: isToday ? .black : .semibold))
+                    .font(.system(size: 16, weight: isToday ? .semibold : .medium))
                     .foregroundColor(
                         isToday ? .white
                         : isCurrentMonth ? theme.current.primaryText
@@ -385,92 +298,67 @@ struct NeuralDayCell: View {
                     )
             }
             
-            // Neural event indicators
-            VStack(spacing: 2) {
+            // Refined event indicators
+            VStack(spacing: 1) {
                 ForEach(dayEvents.prefix(2)) { event in
-                    HStack(spacing: 3) {
-                        // Neural AI indicator
+                    HStack(spacing: 2) {
+                        // Minimal AI indicator
                         if event.isAIGenerated {
                             Circle()
-                                .fill(theme.current.tymoreAccent)
-                                .frame(width: 4, height: 4)
-                                .neonGlow(theme.current.tymoreAccent, radius: 2)
+                                .fill(theme.current.tymoreBlue)
+                                .frame(width: 3, height: 3)
                         }
                         
-                        // Event title with neural styling
+                        // Event title with refined styling
                         Text(event.title)
-                            .font(.system(size: 8, weight: .semibold))
+                            .font(.system(size: 9, weight: .medium))
                             .lineLimit(1)
                             .foregroundColor(.white)
                         
                         Spacer(minLength: 0)
                     }
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 2)
+                    .padding(.horizontal, 3)
+                    .padding(.vertical, 1)
                     .background(
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        categoryColor(event.category),
-                                        categoryColor(event.category).opacity(0.7)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .neonGlow(categoryColor(event.category), radius: 2)
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(categoryColor(event.category))
                     )
                 }
                 
-                // Neural overflow indicator
+                // Clean overflow indicator
                 if dayEvents.count > 2 {
                     Text("+\(dayEvents.count - 2)")
-                        .font(.system(size: 7, weight: .bold))
-                        .tracking(0.5)
-                        .foregroundColor(theme.current.tymoreAccent)
-                        .padding(.horizontal, 4)
+                        .font(.system(size: 8, weight: .medium))
+                        .foregroundColor(theme.current.tymoreBlue)
+                        .padding(.horizontal, 3)
                         .padding(.vertical, 1)
                         .background(
-                            RoundedRectangle(cornerRadius: 3)
-                                .fill(theme.current.tymoreAccent.opacity(0.2))
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(theme.current.tymoreBlue.opacity(0.1))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 3)
-                                        .stroke(theme.current.tymoreAccent, lineWidth: 1)
+                                    RoundedRectangle(cornerRadius: 2)
+                                        .stroke(theme.current.tymoreBlue.opacity(0.3), lineWidth: 0.5)
                                 )
                         )
-                        .neonGlow(theme.current.tymoreAccent, radius: 3)
                 }
             }
             
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 100)
+        .frame(height: 90)
         .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: TymoreRadius.md)
-                    .fill(theme.current.elevatedSurface)
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: TymoreRadius.md))
-                
-                RoundedRectangle(cornerRadius: TymoreRadius.md)
-                    .stroke(
-                        LinearGradient(
-                            colors: [
-                                isToday ? theme.current.tymoreAccent.opacity(0.6) : theme.current.borderColor,
-                                isToday ? theme.current.tymorePurple.opacity(0.3) : theme.current.borderColor.opacity(0.3)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: isToday ? 2 : 1
-                    )
-                    .neonGlow(
-                        isToday ? theme.current.tymoreAccent : (dayEvents.isEmpty ? Color.clear : theme.current.tymoreAccent.opacity(0.3)),
-                        radius: isToday ? 6 : (dayEvents.isEmpty ? 0 : 3)
-                    )
-            }
+            RoundedRectangle(cornerRadius: TymoreRadius.sm)
+                .fill(theme.current.elevatedSurface)
+                .overlay(
+                    RoundedRectangle(cornerRadius: TymoreRadius.sm)
+                        .stroke(
+                            isToday ? theme.current.tymoreBlue.opacity(0.3) : theme.current.borderColor,
+                            lineWidth: isToday ? 1 : 0.5
+                        )
+                )
         )
+        .tymoreShadow(dayEvents.isEmpty ? TymoreShadow.subtle : TymoreShadow.soft)
         .onTapGesture(perform: onTap)
     }
     
@@ -487,7 +375,7 @@ struct NeuralDayCell: View {
     }
 }
 
-struct FuturisticAddEventView: View {
+struct ElegantAddEventView: View {
     @ObservedObject var scheduleManager: ScheduleManager
     @Binding var isPresented: Bool
     @EnvironmentObject var theme: TymoreTheme
@@ -499,135 +387,121 @@ struct FuturisticAddEventView: View {
     
     var body: some View {
         NavigationView {
-            ZStack {
-                // Ultra-dark background
-                LinearGradient(
-                    colors: [
-                        theme.current.primaryBackground,
-                        theme.current.secondaryBackground
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
+            VStack(spacing: 0) {
+                // Elegant header
+                VStack(spacing: TymoreSpacing.md) {
+                    Text("New Event")
+                        .font(TymoreTypography.headlineLarge)
+                        .fontWeight(.medium)
+                        .foregroundColor(theme.current.primaryText)
+                    
+                    Text("Create a new calendar event")
+                        .font(TymoreTypography.bodyMedium)
+                        .foregroundColor(theme.current.secondaryText)
+                }
+                .padding(.top, TymoreSpacing.xl)
+                .padding(.bottom, TymoreSpacing.xl)
                 
+                // Refined form
                 ScrollView {
                     VStack(spacing: TymoreSpacing.xl) {
-                        // Neural header
-                        VStack(spacing: TymoreSpacing.md) {
-                            Text("CREATE NEURAL EVENT")
-                                .font(TymoreTypography.headlineLarge)
-                                .fontWeight(.black)
-                                .tracking(1.5)
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        colors: [theme.current.tymoreAccent, theme.current.tymorePurple],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .neonGlow(theme.current.tymoreAccent, radius: 8)
-                            
-                            Text("Initialize new temporal node")
+                        ElegantFormField(icon: "text.cursor", title: "Title") {
+                            TextField("Event title", text: $title)
                                 .font(TymoreTypography.bodyMedium)
-                                .foregroundColor(theme.current.accentText)
-                                .tracking(0.5)
+                                .foregroundColor(theme.current.primaryText)
                         }
-                        .padding(.top, TymoreSpacing.xl)
                         
-                        // Neural form fields
-                        VStack(spacing: TymoreSpacing.xl) {
-                            NeuralFormField(icon: "text.cursor", title: "Event Identifier") {
-                                TextField("Neural event designation", text: $title)
-                                    .font(TymoreTypography.bodyMedium)
-                                    .foregroundColor(theme.current.primaryText)
-                            }
-                            
-                            NeuralFormField(icon: "tag.circle.fill", title: "Classification Matrix") {
-                                Picker("Category", selection: $selectedCategory) {
-                                    ForEach(EventCategory.allCases, id: \.self) { category in
-                                        HStack {
-                                            Circle()
-                                                .fill(categoryColor(category))
-                                                .frame(width: 12, height: 12)
-                                                .neonGlow(categoryColor(category), radius: 3)
-                                            Text(category.displayName.uppercased())
-                                                .tracking(0.5)
-                                        }
-                                        .tag(category)
+                        ElegantFormField(icon: "tag", title: "Category") {
+                            Picker("Category", selection: $selectedCategory) {
+                                ForEach(EventCategory.allCases, id: \.self) { category in
+                                    HStack {
+                                        Circle()
+                                            .fill(categoryColor(category))
+                                            .frame(width: 10, height: 10)
+                                        Text(category.displayName)
                                     }
+                                    .tag(category)
                                 }
-                                .pickerStyle(MenuPickerStyle())
                             }
-                            
-                            NeuralFormField(icon: "calendar.circle.fill", title: "Temporal Coordinates") {
-                                DatePicker("", selection: $selectedDate, displayedComponents: [.date, .hourAndMinute])
-                                    .labelsHidden()
-                                    .colorScheme(.dark)
-                            }
-                            
-                            NeuralFormField(icon: "clock.circle.fill", title: "Duration Protocol") {
-                                Picker("Duration", selection: $duration) {
-                                    Text("30 MIN").tag(30)
-                                    Text("1 HOUR").tag(60)
-                                    Text("1.5 HOURS").tag(90)
-                                    Text("2 HOURS").tag(120)
-                                    Text("3 HOURS").tag(180)
-                                }
-                                .pickerStyle(MenuPickerStyle())
-                            }
+                            .pickerStyle(MenuPickerStyle())
                         }
                         
-                        Spacer(minLength: TymoreSpacing.xl)
+                        ElegantFormField(icon: "calendar", title: "Date & Time") {
+                            DatePicker("", selection: $selectedDate, displayedComponents: [.date, .hourAndMinute])
+                                .labelsHidden()
+                                .colorScheme(.dark)
+                        }
+                        
+                        ElegantFormField(icon: "clock", title: "Duration") {
+                            Picker("Duration", selection: $duration) {
+                                Text("30 minutes").tag(30)
+                                Text("1 hour").tag(60)
+                                Text("1.5 hours").tag(90)
+                                Text("2 hours").tag(120)
+                                Text("3 hours").tag(180)
+                            }
+                            .pickerStyle(MenuPickerStyle())
+                        }
                     }
                     .padding(TymoreSpacing.xl)
                 }
-            }
-            .navigationBarHidden(true)
-            .overlay(
-                // Custom navigation
-                VStack {
-                    HStack {
-                        Button("ABORT") {
-                            isPresented = false
-                        }
-                        .font(TymoreTypography.labelMedium)
-                        .fontWeight(.bold)
-                        .tracking(0.5)
-                        .foregroundColor(theme.current.secondaryText)
-                        
-                        Spacer()
-                        
-                        Button("INITIALIZE") {
-                            scheduleManager.addEvent(
-                                at: selectedDate,
-                                title: title,
-                                category: selectedCategory,
-                                duration: duration
-                            )
-                            isPresented = false
-                        }
-                        .font(TymoreTypography.labelMedium)
-                        .fontWeight(.black)
-                        .tracking(0.5)
-                        .foregroundColor(title.isEmpty ? theme.current.tertiaryText : theme.current.tymoreAccent)
-                        .disabled(title.isEmpty)
-                        .neonGlow(
-                            title.isEmpty ? Color.clear : theme.current.tymoreAccent,
-                            radius: title.isEmpty ? 0 : 4
-                        )
+                
+                Spacer()
+                
+                // Action buttons
+                HStack(spacing: TymoreSpacing.lg) {
+                    Button("Cancel") {
+                        isPresented = false
                     }
-                    .padding(TymoreSpacing.xl)
+                    .font(TymoreTypography.labelMedium)
+                    .fontWeight(.medium)
+                    .foregroundColor(theme.current.secondaryText)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
                     .background(
-                        Rectangle()
-                            .fill(theme.current.secondaryBackground)
-                            .background(.ultraThinMaterial)
+                        RoundedRectangle(cornerRadius: TymoreRadius.md)
+                            .fill(theme.current.elevatedSurface)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: TymoreRadius.md)
+                                    .stroke(theme.current.borderColor, lineWidth: 0.5)
+                            )
                     )
                     
-                    Spacer()
-                },
-                alignment: .top
-            )
+                    Button("Create") {
+                        scheduleManager.addEvent(
+                            at: selectedDate,
+                            title: title,
+                            category: selectedCategory,
+                            duration: duration
+                        )
+                        isPresented = false
+                    }
+                    .font(TymoreTypography.labelMedium)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(
+                        RoundedRectangle(cornerRadius: TymoreRadius.md)
+                            .fill(title.isEmpty ? theme.current.tertiaryText : theme.current.tymoreBlue)
+                    )
+                    .disabled(title.isEmpty)
+                    .tymoreShadow(title.isEmpty ? TymoreShadow.none : TymoreShadow.soft)
+                }
+                .padding(TymoreSpacing.xl)
+                .background(
+                    Rectangle()
+                        .fill(theme.current.secondaryBackground)
+                        .overlay(
+                            Rectangle()
+                                .fill(theme.current.separatorColor)
+                                .frame(height: 0.5),
+                            alignment: .top
+                        )
+                )
+            }
+            .background(theme.current.primaryBackground)
+            .navigationBarHidden(true)
         }
     }
     
@@ -644,7 +518,7 @@ struct FuturisticAddEventView: View {
     }
 }
 
-struct NeuralFormField<Content: View>: View {
+struct ElegantFormField<Content: View>: View {
     let icon: String
     let title: String
     @ViewBuilder let content: Content
@@ -652,53 +526,29 @@ struct NeuralFormField<Content: View>: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: TymoreSpacing.md) {
-            HStack(spacing: TymoreSpacing.md) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [theme.current.tymoreAccent, theme.current.tymorePurple],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 32, height: 32)
-                        .neonGlow(theme.current.tymoreAccent, radius: 6)
-                    
-                    Image(systemName: icon)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
-                }
+            HStack(spacing: TymoreSpacing.sm) {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(theme.current.tymoreBlue)
+                    .frame(width: 20)
                 
                 Text(title)
                     .font(TymoreTypography.labelLarge)
-                    .fontWeight(.bold)
-                    .tracking(0.5)
-                    .foregroundColor(theme.current.accentText)
+                    .fontWeight(.medium)
+                    .foregroundColor(theme.current.primaryText)
             }
             
             content
                 .padding(TymoreSpacing.lg)
                 .background(
-                    ZStack {
-                        RoundedRectangle(cornerRadius: TymoreRadius.lg)
-                            .fill(theme.current.elevatedSurface)
-                            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: TymoreRadius.lg))
-                        
-                        RoundedRectangle(cornerRadius: TymoreRadius.lg)
-                            .stroke(
-                                LinearGradient(
-                                    colors: [
-                                        theme.current.tymoreAccent.opacity(0.3),
-                                        theme.current.borderColor
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1
-                            )
-                    }
+                    RoundedRectangle(cornerRadius: TymoreRadius.md)
+                        .fill(theme.current.elevatedSurface)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: TymoreRadius.md)
+                                .stroke(theme.current.borderColor, lineWidth: 0.5)
+                        )
                 )
+                .tymoreShadow(TymoreShadow.subtle)
         }
     }
 }
