@@ -23,6 +23,17 @@ class IntelligentTyAI {
               let key = config["CLAUDE_API_KEY"] as? String else {
             fatalError("Claude API key not found in Config.plist - add CLAUDE_API_KEY")
         }
+        
+        // Debug: Print API key format (first/last few characters only for security)
+        let keyStart = String(key.prefix(10))
+        let keyEnd = String(key.suffix(4))
+        print("🔑 Claude API Key format: \(keyStart)...\(keyEnd)")
+        print("🔑 Key length: \(key.count)")
+        
+        if !key.hasPrefix("sk-ant-api03-") {
+            print("⚠️ WARNING: Claude API key should start with 'sk-ant-api03-'")
+        }
+        
         self.apiKey = key
     }
     
@@ -103,16 +114,30 @@ class IntelligentTyAI {
         
         var urlRequest = URLRequest(url: URL(string: apiURL)!)
         urlRequest.httpMethod = "POST"
-        urlRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        urlRequest.setValue(apiKey, forHTTPHeaderField: "x-api-key") // Claude uses x-api-key, not Bearer
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         urlRequest.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version") // Required header
         urlRequest.httpBody = try JSONSerialization.data(withJSONObject: request)
+        
+        // Debug: Print request headers (mask the API key)
+        print("🔍 Request URL: \(apiURL)")
+        print("🔍 x-api-key header: \(String(apiKey.prefix(10)))...***")
+        print("🔍 Content-Type: \(urlRequest.value(forHTTPHeaderField: "Content-Type") ?? "nil")")
+        print("🔍 Anthropic-Version: \(urlRequest.value(forHTTPHeaderField: "anthropic-version") ?? "nil")")
         
         let (data, response) = try await URLSession.shared.data(for: urlRequest)
         
         // Debug response
         if let httpResponse = response as? HTTPURLResponse {
             print("🌐 Claude API Response Status: \(httpResponse.statusCode)")
+            if httpResponse.statusCode != 200 {
+                print("🌐 Response Headers: \(httpResponse.allHeaderFields)")
+            }
+        }
+        
+        // Print raw response for debugging
+        if let responseString = String(data: data, encoding: .utf8) {
+            print("🌐 Raw Claude API Response: \(responseString)")
         }
         
         let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any]
@@ -455,11 +480,59 @@ class IntelligentTyAI {
         
         for block in eventBlocks {
             if let event = parseEventFromBlock(block) {
-                events.append(event)
+                // If it's recurring, create multiple events
+                if event.isRecurring {
+                    let expandedEvents = expandRecurringEvent(event)
+                    events.append(contentsOf: expandedEvents)
+                } else {
+                    events.append(event)
+                }
             }
         }
         
         return events
+    }
+    
+    // NEW: Handle recurring events by creating multiple instances
+    private func expandRecurringEvent(_ event: SimpleEvent) -> [SimpleEvent] {
+        var expandedEvents: [SimpleEvent] = []
+        let calendar = Calendar.current
+        
+        // For work schedules, create events for the next 4 weeks (20 workdays)
+        let numberOfWeeks = 4
+        let today = Date()
+        
+        // Get the base date components
+        let baseComponents = calendar.dateComponents([.hour, .minute], from: event.date)
+        
+        for weekOffset in 0..<numberOfWeeks {
+            for dayOffset in 0..<7 {
+                guard let checkDate = calendar.date(byAdding: .day, value: (weekOffset * 7) + dayOffset, to: today) else { continue }
+                
+                let weekday = calendar.component(.weekday, from: checkDate)
+                
+                // Monday = 2, Friday = 6 (weekend = 1 and 7)
+                if weekday >= 2 && weekday <= 6 {
+                    guard let eventDate = calendar.date(bySettingHour: baseComponents.hour ?? 8,
+                                                      minute: baseComponents.minute ?? 30,
+                                                      second: 0,
+                                                      of: checkDate) else { continue }
+                    
+                    let newEvent = SimpleEvent(
+                        title: event.title,
+                        date: eventDate,
+                        duration: event.duration,
+                        category: event.category,
+                        isRecurring: false, // Individual instances aren't recurring
+                        recurrenceDays: []
+                    )
+                    expandedEvents.append(newEvent)
+                }
+            }
+        }
+        
+        print("📅 Expanded recurring '\(event.title)' into \(expandedEvents.count) weekday events")
+        return expandedEvents
     }
     
     private func parseEventFromBlock(_ block: String) -> SimpleEvent? {
