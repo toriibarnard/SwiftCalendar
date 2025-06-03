@@ -2,7 +2,7 @@
 //  ChatViewModel.swift
 //  SwiftCalendar
 //
-//  Updated to support multiple suggestion selection without clearing
+//  FIXED: Multiple selection support + theme integration
 //
 
 import Foundation

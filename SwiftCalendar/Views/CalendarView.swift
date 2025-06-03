@@ -2,12 +2,19 @@
 //  CalendarView.swift
 //  SwiftCalendar
 //
-//  Created by Torii Barnard on 2025-05-24.
+//  FIXED: Date identifiable issue and view conflicts
 //
+
 import SwiftUI
+
+// MARK: - Fix Date Identifiable Issue
+extension Date: Identifiable {
+    public var id: TimeInterval { timeIntervalSince1970 }
+}
 
 struct CalendarView: View {
     @ObservedObject var scheduleManager: ScheduleManager
+    @EnvironmentObject var theme: TymoreTheme
     @State private var selectedMonth = Date()
     @State private var selectedDate: Date?
     @State private var showingAddEvent = false
@@ -16,11 +23,15 @@ struct CalendarView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Month navigation
-                MonthHeaderView(selectedMonth: $selectedMonth)
+                // Custom navigation header
+                TymoreCalendarHeader(
+                    selectedMonth: $selectedMonth,
+                    onWeekTap: { showingWeekView = true },
+                    onAddTap: { showingAddEvent = true }
+                )
                 
-                // Calendar grid
-                MonthGridView(
+                // Calendar grid with enhanced styling
+                TymoreMonthGrid(
                     selectedMonth: selectedMonth,
                     selectedDate: $selectedDate,
                     scheduleManager: scheduleManager
@@ -28,22 +39,10 @@ struct CalendarView: View {
                 
                 Spacer()
             }
-            .navigationTitle("Calendar")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Week") {
-                        showingWeekView = true
-                    }
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showingAddEvent = true }) {
-                        Image(systemName: "plus")
-                    }
-                }
-            }
+            .background(theme.current.primaryBackground)
+            .navigationBarHidden(true)
             .sheet(isPresented: $showingAddEvent) {
-                AddEventView(scheduleManager: scheduleManager, isPresented: $showingAddEvent)
+                TymoreAddEventView(scheduleManager: scheduleManager, isPresented: $showingAddEvent)
             }
             .sheet(isPresented: $showingWeekView) {
                 WeekView(scheduleManager: scheduleManager)
@@ -55,8 +54,11 @@ struct CalendarView: View {
     }
 }
 
-struct MonthHeaderView: View {
+struct TymoreCalendarHeader: View {
     @Binding var selectedMonth: Date
+    let onWeekTap: () -> Void
+    let onAddTap: () -> Void
+    @EnvironmentObject var theme: TymoreTheme
     
     private let monthFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -65,45 +67,117 @@ struct MonthHeaderView: View {
     }()
     
     var body: some View {
-        HStack {
-            Button(action: previousMonth) {
-                Image(systemName: "chevron.left")
-                    .font(.title2)
-                    .foregroundColor(.blue)
+        VStack(spacing: 0) {
+            HStack(spacing: TymoreSpacing.lg) {
+                // Month navigation
+                Button(action: previousMonth) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(theme.current.tymoreBlue)
+                        .frame(width: 44, height: 44)
+                        .background(theme.current.tertiaryBackground)
+                        .cornerRadius(TymoreRadius.md)
+                        .tymoreShadow(TymoreShadow.subtle)
+                }
+                
+                Spacer()
+                
+                // Month title with enhanced styling
+                VStack(spacing: 2) {
+                    Text(selectedMonth, formatter: monthFormatter)
+                        .font(TymoreTypography.headlineLarge)
+                        .fontWeight(.bold)
+                        .foregroundColor(theme.current.primaryText)
+                    
+                    Text("Tap a date to view details")
+                        .font(TymoreTypography.labelSmall)
+                        .foregroundColor(theme.current.tertiaryText)
+                }
+                
+                Spacer()
+                
+                Button(action: nextMonth) {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(theme.current.tymoreBlue)
+                        .frame(width: 44, height: 44)
+                        .background(theme.current.tertiaryBackground)
+                        .cornerRadius(TymoreRadius.md)
+                        .tymoreShadow(TymoreShadow.subtle)
+                }
             }
             
-            Spacer()
-            
-            Text(selectedMonth, formatter: monthFormatter)
-                .font(.title2)
-                .fontWeight(.semibold)
-            
-            Spacer()
-            
-            Button(action: nextMonth) {
-                Image(systemName: "chevron.right")
-                    .font(.title2)
-                    .foregroundColor(.blue)
+            // Action buttons
+            HStack(spacing: TymoreSpacing.md) {
+                Button(action: onWeekTap) {
+                    HStack(spacing: TymoreSpacing.xs) {
+                        Image(systemName: "calendar.day.timeline.left")
+                            .font(.system(size: 14, weight: .medium))
+                        Text("Week View")
+                            .font(TymoreTypography.labelMedium)
+                    }
+                    .foregroundColor(theme.current.secondaryText)
+                    .padding(.horizontal, TymoreSpacing.md)
+                    .padding(.vertical, TymoreSpacing.sm)
+                    .background(theme.current.tertiaryBackground)
+                    .cornerRadius(TymoreRadius.sm)
+                }
+                
+                Spacer()
+                
+                Button(action: onAddTap) {
+                    HStack(spacing: TymoreSpacing.xs) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 14, weight: .medium))
+                        Text("Add Event")
+                            .font(TymoreTypography.labelMedium)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, TymoreSpacing.md)
+                    .padding(.vertical, TymoreSpacing.sm)
+                    .background(
+                        LinearGradient(
+                            colors: [theme.current.tymoreBlue, theme.current.tymoreSteel],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(TymoreRadius.sm)
+                    .tymoreShadow(TymoreShadow.soft)
+                }
             }
+            .padding(.top, TymoreSpacing.md)
         }
-        .padding()
+        .padding(TymoreSpacing.lg)
+        .background(theme.current.secondaryBackground)
+        .overlay(
+            Rectangle()
+                .fill(theme.current.separatorColor)
+                .frame(height: 1),
+            alignment: .bottom
+        )
     }
     
     private func previousMonth() {
-        selectedMonth = Calendar.current.date(byAdding: .month, value: -1, to: selectedMonth) ?? selectedMonth
+        withAnimation(.easeInOut(duration: 0.3)) {
+            selectedMonth = Calendar.current.date(byAdding: .month, value: -1, to: selectedMonth) ?? selectedMonth
+        }
     }
     
     private func nextMonth() {
-        selectedMonth = Calendar.current.date(byAdding: .month, value: 1, to: selectedMonth) ?? selectedMonth
+        withAnimation(.easeInOut(duration: 0.3)) {
+            selectedMonth = Calendar.current.date(byAdding: .month, value: 1, to: selectedMonth) ?? selectedMonth
+        }
     }
 }
 
-struct MonthGridView: View {
+struct TymoreMonthGrid: View {
     let selectedMonth: Date
     @Binding var selectedDate: Date?
     @ObservedObject var scheduleManager: ScheduleManager
+    @EnvironmentObject var theme: TymoreTheme
     
-    private let columns = Array(repeating: GridItem(.flexible()), count: 7)
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 2), count: 7)
     private let dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     
     var monthDays: [Date?] {
@@ -122,45 +196,49 @@ struct MonthGridView: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Day labels
-            HStack {
+        VStack(spacing: TymoreSpacing.sm) {
+            // Day labels with enhanced styling
+            HStack(spacing: 0) {
                 ForEach(dayLabels, id: \.self) { day in
                     Text(day)
-                        .font(.caption)
+                        .font(TymoreTypography.labelMedium)
                         .fontWeight(.semibold)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(theme.current.tertiaryText)
                         .frame(maxWidth: .infinity)
                 }
             }
-            .padding(.horizontal)
+            .padding(.horizontal, TymoreSpacing.sm)
+            .padding(.vertical, TymoreSpacing.xs)
             
             // Calendar grid
-            LazyVGrid(columns: columns, spacing: 8) {
+            LazyVGrid(columns: columns, spacing: 2) {
                 ForEach(Array(monthDays.enumerated()), id: \.offset) { _, date in
                     if let date = date {
-                        DayCell(
+                        TymoreDayCell(
                             date: date,
                             scheduleManager: scheduleManager,
-                            isSelected: false,
-                            onTap: { selectedDate = date }
+                            onTap: {
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                    selectedDate = date
+                                }
+                            }
                         )
                     } else {
                         Color.clear
-                            .frame(height: 80)
+                            .frame(height: 90)
                     }
                 }
             }
-            .padding()
+            .padding(.horizontal, TymoreSpacing.sm)
         }
     }
 }
 
-struct DayCell: View {
+struct TymoreDayCell: View {
     let date: Date
     @ObservedObject var scheduleManager: ScheduleManager
-    let isSelected: Bool
     let onTap: () -> Void
+    @EnvironmentObject var theme: TymoreTheme
     
     private var dayEvents: [ScheduleEvent] {
         let calendar = Calendar.current
@@ -176,74 +254,117 @@ struct DayCell: View {
         Calendar.current.isDateInToday(date)
     }
     
+    private var isCurrentMonth: Bool {
+        Calendar.current.isDate(date, equalTo: Date(), toGranularity: .month)
+    }
+    
     var body: some View {
-        VStack(spacing: 2) {
-            // Day number
+        VStack(spacing: 4) {
+            // Day number with enhanced styling
             Text("\(Calendar.current.component(.day, from: date))")
                 .font(.system(size: 16, weight: isToday ? .bold : .medium))
-                .foregroundColor(isToday ? .white : .primary)
-                .frame(width: 28, height: 28)
-                .background(isToday ? Circle().fill(Color.blue) : nil)
-            
-            // Mini event indicators
-            VStack(spacing: 1) {
-                ForEach(dayEvents.prefix(3)) { event in
-                    HStack(spacing: 2) {
-                        if event.isAIGenerated {
-                            Text("🤖")
-                                .font(.system(size: 8))
+                .foregroundColor(
+                    isToday ? .white
+                    : isCurrentMonth ? theme.current.primaryText
+                    : theme.current.tertiaryText
+                )
+                .frame(width: 32, height: 32)
+                .background(
+                    Group {
+                        if isToday {
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [theme.current.tymoreBlue, theme.current.tymoreSteel],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .tymoreShadow(TymoreShadow.soft)
+                        } else {
+                            Circle()
+                                .fill(Color.clear)
                         }
+                    }
+                )
+            
+            // Event indicators with sophisticated design
+            VStack(spacing: 2) {
+                ForEach(dayEvents.prefix(2)) { event in
+                    HStack(spacing: 2) {
+                        // AI indicator
+                        if event.isAIGenerated {
+                            Circle()
+                                .fill(theme.current.tymoreAccent)
+                                .frame(width: 4, height: 4)
+                        }
+                        
+                        // Event title
                         Text(event.title)
-                            .font(.system(size: 9))
+                            .font(.system(size: 8, weight: .medium))
                             .lineLimit(1)
+                            .foregroundColor(.white)
+                        
                         Spacer(minLength: 0)
                     }
-                    .padding(.horizontal, 3)
-                    .padding(.vertical, 1)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(categoryColor(event.category).opacity(0.8))
-                    .foregroundColor(.white)
-                    .cornerRadius(2)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .background(
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(categoryColor(event.category))
+                    )
                 }
                 
-                if dayEvents.count > 3 {
-                    Text("+\(dayEvents.count - 3)")
-                        .font(.system(size: 8))
-                        .foregroundColor(.secondary)
+                // More events indicator
+                if dayEvents.count > 2 {
+                    Text("+\(dayEvents.count - 2)")
+                        .font(.system(size: 7, weight: .medium))
+                        .foregroundColor(theme.current.tymoreBlue)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(theme.current.tymoreBlue.opacity(0.2))
+                        )
                 }
             }
             
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 80)
+        .frame(height: 90)
         .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(UIColor.secondarySystemBackground))
+            RoundedRectangle(cornerRadius: TymoreRadius.sm)
+                .fill(theme.current.cardBackground)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(isToday ? Color.blue : Color.clear, lineWidth: 2)
+                    RoundedRectangle(cornerRadius: TymoreRadius.sm)
+                        .stroke(
+                            isToday ? theme.current.tymoreBlue.opacity(0.5) : theme.current.borderColor,
+                            lineWidth: isToday ? 2 : 1
+                        )
                 )
         )
+        .tymoreShadow(dayEvents.isEmpty ? TymoreShadow.subtle : TymoreShadow.soft)
         .onTapGesture(perform: onTap)
     }
     
     func categoryColor(_ category: EventCategory) -> Color {
         switch category {
-        case .work: return .red
-        case .fitness: return .green
-        case .personal: return .blue
-        case .study: return .purple
-        case .health: return .orange
-        case .social: return .pink
-        case .other: return .gray
+        case .work: return theme.current.workColor
+        case .fitness: return theme.current.fitnessColor
+        case .personal: return theme.current.personalColor
+        case .study: return theme.current.studyColor
+        case .health: return theme.current.healthColor
+        case .social: return theme.current.socialColor
+        case .other: return theme.current.otherColor
         }
     }
 }
 
-struct AddEventView: View {
+struct TymoreAddEventView: View {
     @ObservedObject var scheduleManager: ScheduleManager
     @Binding var isPresented: Bool
+    @EnvironmentObject var theme: TymoreTheme
     
     @State private var title = ""
     @State private var selectedDate = Date()
@@ -253,26 +374,46 @@ struct AddEventView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Event Details")) {
-                    TextField("Event Title", text: $title)
-                    
-                    Picker("Category", selection: $selectedCategory) {
-                        ForEach(EventCategory.allCases, id: \.self) { category in
-                            Text(category.rawValue.capitalized).tag(category)
-                        }
+                Section {
+                    TymoreFormField(icon: "text.cursor", title: "Title") {
+                        TextField("Event title", text: $title)
+                            .font(TymoreTypography.bodyMedium)
                     }
                     
-                    DatePicker("Date & Time", selection: $selectedDate, displayedComponents: [.date, .hourAndMinute])
+                    TymoreFormField(icon: "tag", title: "Category") {
+                        Picker("Category", selection: $selectedCategory) {
+                            ForEach(EventCategory.allCases, id: \.self) { category in
+                                HStack {
+                                    Circle()
+                                        .fill(categoryColor(category))
+                                        .frame(width: 12, height: 12)
+                                    Text(category.displayName)
+                                }
+                                .tag(category)
+                            }
+                        }
+                        .pickerStyle(MenuPickerStyle())
+                    }
                     
-                    Picker("Duration", selection: $duration) {
-                        Text("30 minutes").tag(30)
-                        Text("1 hour").tag(60)
-                        Text("1.5 hours").tag(90)
-                        Text("2 hours").tag(120)
-                        Text("3 hours").tag(180)
+                    TymoreFormField(icon: "calendar", title: "Date & Time") {
+                        DatePicker("", selection: $selectedDate, displayedComponents: [.date, .hourAndMinute])
+                            .labelsHidden()
+                    }
+                    
+                    TymoreFormField(icon: "clock", title: "Duration") {
+                        Picker("Duration", selection: $duration) {
+                            Text("30 min").tag(30)
+                            Text("1 hour").tag(60)
+                            Text("1.5 hours").tag(90)
+                            Text("2 hours").tag(120)
+                            Text("3 hours").tag(180)
+                        }
+                        .pickerStyle(MenuPickerStyle())
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(theme.current.primaryBackground)
             .navigationTitle("Add Event")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -280,6 +421,7 @@ struct AddEventView: View {
                     Button("Cancel") {
                         isPresented = false
                     }
+                    .foregroundColor(theme.current.secondaryText)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Add") {
@@ -291,18 +433,55 @@ struct AddEventView: View {
                         )
                         isPresented = false
                     }
+                    .foregroundColor(theme.current.tymoreBlue)
+                    .fontWeight(.semibold)
                     .disabled(title.isEmpty)
                 }
             }
         }
     }
+    
+    func categoryColor(_ category: EventCategory) -> Color {
+        switch category {
+        case .work: return theme.current.workColor
+        case .fitness: return theme.current.fitnessColor
+        case .personal: return theme.current.personalColor
+        case .study: return theme.current.studyColor
+        case .health: return theme.current.healthColor
+        case .social: return theme.current.socialColor
+        case .other: return theme.current.otherColor
+        }
+    }
 }
 
-// Make Date identifiable for sheet presentation
-extension Date: Identifiable {
-    public var id: Double { timeIntervalSince1970 }
+struct TymoreFormField<Content: View>: View {
+    let icon: String
+    let title: String
+    @ViewBuilder let content: Content
+    @EnvironmentObject var theme: TymoreTheme
+    
+    var body: some View {
+        HStack(spacing: TymoreSpacing.md) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(theme.current.tymoreBlue)
+                .frame(width: 24)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(TymoreTypography.labelMedium)
+                    .foregroundColor(theme.current.secondaryText)
+                
+                content
+            }
+            
+            Spacer()
+        }
+        .padding(.vertical, TymoreSpacing.xs)
+    }
 }
 
 #Preview {
     CalendarView(scheduleManager: ScheduleManager())
+        .environmentObject(TymoreTheme.shared)
 }

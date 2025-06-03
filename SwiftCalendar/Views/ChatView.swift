@@ -2,7 +2,7 @@
 //  ChatView.swift
 //  SwiftCalendar
 //
-//  Updated to show selection state for multiple suggestions
+//  FINAL: Complete theme integration with multiple selection
 //
 
 import SwiftUI
@@ -10,6 +10,7 @@ import SwiftUI
 struct ChatView: View {
     @StateObject private var viewModel = ChatViewModel()
     @ObservedObject var scheduleManager: ScheduleManager
+    @EnvironmentObject var theme: TymoreTheme
     @FocusState private var isInputFocused: Bool
     
     init(scheduleManager: ScheduleManager) {
@@ -19,88 +20,55 @@ struct ChatView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Messages list
+                // Custom Navigation Header
+                TymoreNavigationHeader(viewModel: viewModel)
+                
+                // Messages list with custom styling
                 ScrollViewReader { proxy in
                     ScrollView {
-                        LazyVStack(spacing: 12) {
+                        LazyVStack(spacing: TymoreSpacing.md) {
                             ForEach(viewModel.messages) { message in
-                                MessageBubbleView(
+                                TymoreMessageBubble(
                                     message: message,
-                                    viewModel: viewModel, // NEW: Pass viewModel for selection state
+                                    viewModel: viewModel,
                                     onSuggestionTap: { suggestion in
-                                        viewModel.selectScheduleSuggestion(suggestion)
+                                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                                            viewModel.selectScheduleSuggestion(suggestion)
+                                        }
                                     }
                                 )
                                 .id(message.id)
                             }
                             
                             if viewModel.isLoading {
-                                HStack {
-                                    TypingIndicator()
-                                    Spacer()
-                                }
-                                .padding(.horizontal)
+                                TymoreTypingIndicator()
                             }
                         }
-                        .padding()
+                        .padding(TymoreSpacing.lg)
                     }
+                    .background(theme.current.primaryBackground)
                     .onChange(of: viewModel.messages.count) { _ in
-                        withAnimation {
+                        withAnimation(.easeOut(duration: 0.5)) {
                             proxy.scrollTo(viewModel.messages.last?.id, anchor: .bottom)
                         }
                     }
                 }
                 
-                // Error message
+                // Error banner
                 if !viewModel.errorMessage.isEmpty {
-                    Text(viewModel.errorMessage)
-                        .font(.caption)
-                        .foregroundColor(.red)
-                        .padding(.horizontal)
-                        .padding(.vertical, 4)
+                    TymoreErrorBanner(message: viewModel.errorMessage)
                 }
                 
-                Divider()
-                
-                // Input area
-                HStack(spacing: 12) {
-                    TextField("Ask when to schedule something...", text: $viewModel.inputText, axis: .vertical)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .lineLimit(1...4)
-                        .focused($isInputFocused)
-                        .onSubmit {
-                            viewModel.sendMessage()
-                        }
-                    
-                    Button(action: viewModel.sendMessage) {
-                        Image(systemName: "paperplane.fill")
-                            .foregroundColor(viewModel.inputText.isEmpty ? .gray : .blue)
-                    }
-                    .disabled(viewModel.inputText.isEmpty || viewModel.isLoading)
-                }
-                .padding()
-                .background(Color(UIColor.systemBackground))
+                // Custom input area
+                TymoreChatInput(
+                    inputText: $viewModel.inputText,
+                    isLoading: viewModel.isLoading,
+                    isInputFocused: $isInputFocused,
+                    onSend: viewModel.sendMessage
+                )
             }
-            .navigationTitle("Ty - Schedule Optimizer")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Clear") {
-                        viewModel.clearConversation()
-                    }
-                    .font(.caption)
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    // NEW: Show clear selections button when there are selections
-                    if !viewModel.selectedSuggestionIds.isEmpty {
-                        Button("Clear Selections") {
-                            viewModel.clearSelections()
-                        }
-                        .font(.caption)
-                        .foregroundColor(.orange)
-                    }
-                }
-            }
+            .background(theme.current.primaryBackground)
+            .navigationBarHidden(true)
             .onAppear {
                 viewModel.scheduleManager = scheduleManager
             }
@@ -118,70 +86,196 @@ struct ChatView: View {
     }
 }
 
-struct MessageBubbleView: View {
-    let message: ChatMessage
-    let viewModel: ChatViewModel // NEW: Access to selection state
-    let onSuggestionTap: (ScheduleSuggestion) -> Void
+struct TymoreNavigationHeader: View {
+    let viewModel: ChatViewModel
+    @EnvironmentObject var theme: TymoreTheme
     
     var body: some View {
-        HStack {
-            if message.isUser { Spacer() }
-            
-            VStack(alignment: message.isUser ? .trailing : .leading, spacing: 8) {
-                // Message content
-                Text(message.content)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(message.isUser ? Color.blue : Color(UIColor.secondarySystemBackground))
-                    .foregroundColor(message.isUser ? .white : .primary)
-                    .cornerRadius(20)
-                    .frame(maxWidth: 300, alignment: message.isUser ? .trailing : .leading)
+        HStack(spacing: TymoreSpacing.md) {
+            // Ty AI Avatar
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [theme.current.tymoreBlue, theme.current.tymoreSteel],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 40, height: 40)
                 
-                // Schedule suggestions (only for Ty's optimization responses)
+                Image(systemName: "brain.head.profile")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(.white)
+            }
+            .tymoreShadow(TymoreShadow.subtle)
+            
+            // Title and status
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: TymoreSpacing.xs) {
+                    Text("Ty")
+                        .font(TymoreTypography.headlineMedium)
+                        .foregroundColor(theme.current.primaryText)
+                    
+                    // AI indicator
+                    Text("AI")
+                        .font(TymoreTypography.labelSmall)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(theme.current.tymoreAccent)
+                        .cornerRadius(TymoreRadius.xs)
+                }
+                
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(theme.current.success)
+                        .frame(width: 6, height: 6)
+                    
+                    Text("Schedule Optimizer")
+                        .font(TymoreTypography.bodySmall)
+                        .foregroundColor(theme.current.secondaryText)
+                }
+            }
+            
+            Spacer()
+            
+            // Action buttons
+            HStack(spacing: TymoreSpacing.sm) {
+                // Clear selections button
+                if !viewModel.selectedSuggestionIds.isEmpty {
+                    Button(action: viewModel.clearSelections) {
+                        Image(systemName: "clear")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(theme.current.warning)
+                    }
+                }
+                
+                // Clear conversation button
+                Button(action: viewModel.clearConversation) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(theme.current.tertiaryText)
+                }
+            }
+        }
+        .padding(.horizontal, TymoreSpacing.lg)
+        .padding(.vertical, TymoreSpacing.md)
+        .background(theme.current.secondaryBackground)
+        .overlay(
+            Rectangle()
+                .fill(theme.current.separatorColor)
+                .frame(height: 1),
+            alignment: .bottom
+        )
+    }
+}
+
+struct TymoreMessageBubble: View {
+    let message: ChatMessage
+    let viewModel: ChatViewModel
+    let onSuggestionTap: (ScheduleSuggestion) -> Void
+    @EnvironmentObject var theme: TymoreTheme
+    
+    var body: some View {
+        HStack(alignment: .bottom, spacing: TymoreSpacing.sm) {
+            if message.isUser { Spacer(minLength: 50) }
+            
+            VStack(alignment: message.isUser ? .trailing : .leading, spacing: TymoreSpacing.sm) {
+                // Message bubble
+                Text(message.content)
+                    .font(TymoreTypography.bodyMedium)
+                    .foregroundColor(message.isUser ? .white : theme.current.primaryText)
+                    .padding(.horizontal, TymoreSpacing.lg)
+                    .padding(.vertical, TymoreSpacing.md)
+                    .background(
+                        RoundedRectangle(cornerRadius: TymoreRadius.lg)
+                            .fill(
+                                message.isUser
+                                ? LinearGradient(
+                                    colors: [theme.current.tymoreBlue, theme.current.tymoreSteel],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                                : LinearGradient(
+                                    colors: [theme.current.cardBackground, theme.current.cardBackground],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: TymoreRadius.lg)
+                            .stroke(
+                                message.isUser ? Color.clear : theme.current.borderColor,
+                                lineWidth: 1
+                            )
+                    )
+                    .tymoreShadow(message.isUser ? TymoreShadow.soft : TymoreShadow.subtle)
+                
+                // Schedule suggestions with enhanced styling
                 if let suggestions = message.suggestions, !suggestions.isEmpty {
-                    ScheduleSuggestionsView(
+                    TymoreScheduleSuggestions(
                         suggestions: suggestions,
-                        viewModel: viewModel, // NEW: Pass viewModel
+                        viewModel: viewModel,
                         onTap: onSuggestionTap
                     )
                 }
                 
                 // Timestamp
                 Text(message.timestamp.chatFormat())
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .font(TymoreTypography.labelSmall)
+                    .foregroundColor(theme.current.tertiaryText)
+                    .padding(.horizontal, TymoreSpacing.sm)
             }
             
-            if !message.isUser { Spacer() }
+            if !message.isUser { Spacer(minLength: 50) }
         }
     }
 }
 
-struct ScheduleSuggestionsView: View {
+struct TymoreScheduleSuggestions: View {
     let suggestions: [ScheduleSuggestion]
-    let viewModel: ChatViewModel // NEW: Access to selection state
+    let viewModel: ChatViewModel
     let onTap: (ScheduleSuggestion) -> Void
+    @EnvironmentObject var theme: TymoreTheme
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: TymoreSpacing.sm) {
+            // Header
+            HStack {
+                Image(systemName: "lightbulb.fill")
+                    .foregroundColor(theme.current.tymoreAccent)
+                    .font(.system(size: 14))
+                
+                Text("Optimal Time Suggestions")
+                    .font(TymoreTypography.labelMedium)
+                    .foregroundColor(theme.current.secondaryText)
+                
+                Spacer()
+            }
+            .padding(.horizontal, TymoreSpacing.sm)
+            
+            // Suggestions
             ForEach(Array(suggestions.enumerated()), id: \.element.id) { index, suggestion in
-                ScheduleSuggestionCard(
+                TymoreSuggestionCard(
                     suggestion: suggestion,
                     rank: index + 1,
-                    isSelected: viewModel.isSuggestionSelected(suggestion), // NEW: Pass selection state
+                    isSelected: viewModel.isSuggestionSelected(suggestion),
                     onTap: { onTap(suggestion) }
                 )
             }
         }
-        .frame(maxWidth: 300)
+        .frame(maxWidth: 320)
     }
 }
 
-struct ScheduleSuggestionCard: View {
+struct TymoreSuggestionCard: View {
     let suggestion: ScheduleSuggestion
     let rank: Int
-    let isSelected: Bool // NEW: Selection state
+    let isSelected: Bool
     let onTap: () -> Void
+    @EnvironmentObject var theme: TymoreTheme
     
     private var timeFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -189,126 +283,229 @@ struct ScheduleSuggestionCard: View {
         return formatter
     }
     
-    private var scoreColor: Color {
-        if isSelected { return .green } // NEW: Green when selected
-        let score = suggestion.timeSlot.score
-        if score >= 0.8 { return .green }
-        if score >= 0.6 { return .orange }
-        return .gray
-    }
-    
     var body: some View {
         Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 6) {
-                // Header with rank and time
-                HStack {
-                    Text("#\(rank)")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(scoreColor)
-                        .foregroundColor(.white)
-                        .cornerRadius(4)
-                    
-                    Text(suggestion.timeSlot.startTime, formatter: timeFormatter)
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(isSelected ? .green : .primary) // NEW: Green text when selected
-                    
-                    Spacer()
-                    
-                    // Score indicator or checkmark
-                    if isSelected {
-                        // NEW: Show checkmark when selected
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                            .font(.title2)
-                    } else {
-                        // Original score indicator
-                        HStack(spacing: 2) {
-                            ForEach(0..<5) { index in
-                                Circle()
-                                    .fill(index < Int(suggestion.timeSlot.score * 5) ? scoreColor : Color.gray.opacity(0.3))
-                                    .frame(width: 6, height: 6)
+            HStack(spacing: TymoreSpacing.md) {
+                // Rank badge
+                Text("#\(rank)")
+                    .font(TymoreTypography.labelSmall)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                    .frame(width: 28, height: 28)
+                    .background(
+                        Circle()
+                            .fill(isSelected ? theme.current.success : theme.current.tymoreSteel)
+                    )
+                
+                // Content
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(suggestion.timeSlot.startTime, formatter: timeFormatter)
+                            .font(TymoreTypography.headlineSmall)
+                            .foregroundColor(isSelected ? theme.current.success : theme.current.primaryText)
+                            .fontWeight(.semibold)
+                        
+                        Spacer()
+                        
+                        // Status indicator
+                        if isSelected {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(theme.current.success)
+                                .font(.system(size: 20))
+                        } else {
+                            // Score visualization
+                            HStack(spacing: 2) {
+                                ForEach(0..<5) { index in
+                                    Circle()
+                                        .fill(
+                                            index < Int(suggestion.timeSlot.score * 5)
+                                            ? theme.current.tymoreBlue
+                                            : theme.current.tertiaryBackground
+                                        )
+                                        .frame(width: 6, height: 6)
+                                }
                             }
                         }
                     }
-                }
-                
-                // Reasoning
-                Text(suggestion.timeSlot.reasoning)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.leading)
-                
-                // Action hint
-                HStack {
-                    if isSelected {
-                        // NEW: Show scheduled status
-                        Image(systemName: "calendar.badge.checkmark")
-                            .foregroundColor(.green)
-                            .font(.caption)
-                        Text("Scheduled ✓")
-                            .font(.caption)
-                            .foregroundColor(.green)
+                    
+                    Text(suggestion.timeSlot.reasoning)
+                        .font(TymoreTypography.bodySmall)
+                        .foregroundColor(theme.current.secondaryText)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(2)
+                    
+                    // Action indicator
+                    HStack(spacing: 4) {
+                        Image(systemName: isSelected ? "calendar.badge.checkmark" : "plus.circle.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(isSelected ? theme.current.success : theme.current.tymoreBlue)
+                        
+                        Text(isSelected ? "Scheduled" : "Tap to schedule")
+                            .font(TymoreTypography.labelSmall)
+                            .foregroundColor(isSelected ? theme.current.success : theme.current.tymoreBlue)
                             .fontWeight(.medium)
-                    } else {
-                        // Original tap to schedule
-                        Image(systemName: "plus.circle.fill")
-                            .foregroundColor(.blue)
-                            .font(.caption)
-                        Text("Tap to schedule")
-                            .font(.caption)
-                            .foregroundColor(.blue)
                     }
-                    Spacer()
                 }
+                
+                Spacer()
             }
-            .padding(12)
+            .padding(TymoreSpacing.md)
             .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(isSelected ? Color.green.opacity(0.1) : Color(UIColor.secondarySystemBackground)) // NEW: Light green background when selected
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(scoreColor.opacity(isSelected ? 0.6 : 0.3), lineWidth: isSelected ? 2 : 1) // NEW: Thicker border when selected
+                RoundedRectangle(cornerRadius: TymoreRadius.md)
+                    .fill(
+                        isSelected
+                        ? theme.current.success.opacity(0.1)
+                        : theme.current.cardBackground
                     )
             )
+            .overlay(
+                RoundedRectangle(cornerRadius: TymoreRadius.md)
+                    .stroke(
+                        isSelected ? theme.current.success : theme.current.borderColor,
+                        lineWidth: isSelected ? 2 : 1
+                    )
+            )
+            .tymoreShadow(isSelected ? TymoreShadow.medium : TymoreShadow.subtle)
         }
         .buttonStyle(PlainButtonStyle())
-        .disabled(isSelected) // NEW: Disable tap when already selected
+        .disabled(isSelected)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isSelected)
     }
 }
 
-struct TypingIndicator: View {
-    @State private var animationAmount = 0.0
+struct TymoreChatInput: View {
+    @Binding var inputText: String
+    let isLoading: Bool
+    @FocusState.Binding var isInputFocused: Bool
+    let onSend: () -> Void
+    @EnvironmentObject var theme: TymoreTheme
     
     var body: some View {
-        HStack(spacing: 4) {
-            ForEach(0..<3) { index in
-                Circle()
-                    .fill(Color.gray)
-                    .frame(width: 8, height: 8)
-                    .scaleEffect(animationAmount)
-                    .opacity(animationAmount)
-                    .animation(
-                        Animation.easeInOut(duration: 0.6)
-                            .repeatForever(autoreverses: true)
-                            .delay(Double(index) * 0.2),
-                        value: animationAmount
-                    )
+        VStack(spacing: 0) {
+            Rectangle()
+                .fill(theme.current.separatorColor)
+                .frame(height: 1)
+            
+            HStack(spacing: TymoreSpacing.md) {
+                // Input field with sophisticated styling
+                HStack(spacing: TymoreSpacing.sm) {
+                    TextField("Ask Ty to optimize your schedule...", text: $inputText, axis: .vertical)
+                        .font(TymoreTypography.bodyMedium)
+                        .foregroundColor(theme.current.primaryText)
+                        .lineLimit(1...4)
+                        .focused($isInputFocused)
+                        .onSubmit(onSend)
+                    
+                    if !inputText.isEmpty {
+                        Button(action: { inputText = "" }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(theme.current.tertiaryText)
+                        }
+                    }
+                }
+                .padding(.horizontal, TymoreSpacing.md)
+                .padding(.vertical, TymoreSpacing.sm)
+                .background(theme.current.tertiaryBackground)
+                .cornerRadius(TymoreRadius.lg)
+                .overlay(
+                    RoundedRectangle(cornerRadius: TymoreRadius.lg)
+                        .stroke(
+                            isInputFocused ? theme.current.tymoreBlue : theme.current.borderColor,
+                            lineWidth: isInputFocused ? 2 : 1
+                        )
+                )
+                
+                // Send button with gradient
+                Button(action: onSend) {
+                    Image(systemName: "paperplane.fill")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(.white)
+                        .frame(width: 44, height: 44)
+                        .background(
+                            Circle()
+                                .fill(
+                                    inputText.isEmpty || isLoading
+                                    ? LinearGradient(colors: [theme.current.tertiaryText], startPoint: .top, endPoint: .bottom)
+                                    : LinearGradient(
+                                        colors: [theme.current.tymoreBlue, theme.current.tymoreSteel],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                        )
+                        .tymoreShadow(inputText.isEmpty ? TymoreShadow.subtle : TymoreShadow.soft)
+                }
+                .disabled(inputText.isEmpty || isLoading)
+                .scaleEffect(inputText.isEmpty ? 0.9 : 1.0)
+                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: inputText.isEmpty)
             }
+            .padding(TymoreSpacing.lg)
+            .background(theme.current.secondaryBackground)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(Color(UIColor.secondarySystemBackground))
-        .cornerRadius(20)
+    }
+}
+
+struct TymoreTypingIndicator: View {
+    @State private var animationPhase = 0.0
+    @EnvironmentObject var theme: TymoreTheme
+    
+    var body: some View {
+        HStack {
+            HStack(spacing: 6) {
+                ForEach(0..<3) { index in
+                    Circle()
+                        .fill(theme.current.tymoreBlue)
+                        .frame(width: 8, height: 8)
+                        .scaleEffect(1.0 + 0.3 * sin(animationPhase + Double(index) * 0.7))
+                        .animation(
+                            .easeInOut(duration: 1.0).repeatForever(autoreverses: false),
+                            value: animationPhase
+                        )
+                }
+            }
+            .padding(.horizontal, TymoreSpacing.lg)
+            .padding(.vertical, TymoreSpacing.md)
+            .background(theme.current.cardBackground)
+            .cornerRadius(TymoreRadius.lg)
+            .tymoreShadow(TymoreShadow.subtle)
+            
+            Spacer()
+        }
         .onAppear {
-            animationAmount = 1.0
+            animationPhase = 2 * .pi
         }
+    }
+}
+
+struct TymoreErrorBanner: View {
+    let message: String
+    @EnvironmentObject var theme: TymoreTheme
+    
+    var body: some View {
+        HStack(spacing: TymoreSpacing.sm) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundColor(theme.current.warning)
+            
+            Text(message)
+                .font(TymoreTypography.bodySmall)
+                .foregroundColor(theme.current.primaryText)
+                .lineLimit(2)
+            
+            Spacer()
+        }
+        .padding(.horizontal, TymoreSpacing.lg)
+        .padding(.vertical, TymoreSpacing.sm)
+        .background(theme.current.warning.opacity(0.1))
+        .overlay(
+            Rectangle()
+                .fill(theme.current.warning)
+                .frame(height: 2),
+            alignment: .bottom
+        )
     }
 }
 
 #Preview {
     ChatView(scheduleManager: ScheduleManager())
+        .environmentObject(TymoreTheme.shared)
 }

@@ -14,6 +14,7 @@
 		508F8FDB2DEDD17F008FB70A /* EventDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 508F8FDA2DEDD17F008FB70A /* EventDetailView.swift */; };
 		508F8FDD2DEDEFC3008FB70A /* SmartScheduleOptimizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 508F8FDC2DEDEFC3008FB70A /* SmartScheduleOptimizer.swift */; };
 		508F8FDF2DEDEFCD008FB70A /* IntelligentTyAI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 508F8FDE2DEDEFCD008FB70A /* IntelligentTyAI.swift */; };
+		508F8FE22DEF60F8008FB70A /* TymoreTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 508F8FE12DEF60F8008FB70A /* TymoreTheme.swift */; };
 		509C888B2DE28745004AEA54 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 509C888A2DE28745004AEA54 /* FirebaseAuth */; };
 		509C888D2DE28745004AEA54 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 509C888C2DE28745004AEA54 /* FirebaseFirestore */; };
 		509C88992DE2897B004AEA54 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 509C88952DE2897B004AEA54 /* ContentView.swift */; };
@@ -58,6 +59,7 @@
 		508F8FDA2DEDD17F008FB70A /* EventDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventDetailView.swift; sourceTree = "<group>"; };
 		508F8FDC2DEDEFC3008FB70A /* SmartScheduleOptimizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartScheduleOptimizer.swift; sourceTree = "<group>"; };
 		508F8FDE2DEDEFCD008FB70A /* IntelligentTyAI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligentTyAI.swift; sourceTree = "<group>"; };
+		508F8FE12DEF60F8008FB70A /* TymoreTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TymoreTheme.swift; sourceTree = "<group>"; };
 		509C88912DE2897B004AEA54 /* SwiftCalendar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SwiftCalendar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		509C88922DE2897B004AEA54 /* SwiftCalendarTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwiftCalendarTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		509C88932DE2897B004AEA54 /* SwiftCalendarUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwiftCalendarUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -71,7 +73,7 @@
 		509C88A72DE28B58004AEA54 /* AuthenticationViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationViewModel.swift; sourceTree = "<group>"; };
 		509C88A92DE28B93004AEA54 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationView.swift; sourceTree = "<group>"; };
 		509C88AB2DE29077004AEA54 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
-		50C88B752DEAA56E0036AF4B /* Config.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Config.plist; sourceTree = "<group>"; };
+		50C88B752DEAA56E0036AF4B /* Config.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Config.plist; sourceTree = "<group>"; };
 		50C88B772DEB43110036AF4B /* DayDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayDetailView.swift; sourceTree = "<group>"; };
 		50C88B792DEB51570036AF4B /* WeekView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekView.swift; sourceTree = "<group>"; };
 		50D5870A2DE93FF70039751C /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
@@ -118,6 +120,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		508F8FE02DEF60EB008FB70A /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				508F8FE12DEF60F8008FB70A /* TymoreTheme.swift */,
+			);
+			path = Theme;
+			sourceTree = "<group>";
+		};
 		509C88562DE286D2004AEA54 = {
 			isa = PBXGroup;
 			children = (
@@ -134,6 +144,7 @@
 			isa = PBXGroup;
 			children = (
 				50C88B752DEAA56E0036AF4B /* Config.plist */,
+				508F8FE02DEF60EB008FB70A /* Theme */,
 				509C88A02DE28A43004AEA54 /* Services */,
 				509C889F2DE28A38004AEA54 /* ViewModels */,
 				509C889E2DE28A2E004AEA54 /* Views */,
@@ -359,6 +370,7 @@
 				509C88A42DE28AB5004AEA54 /* Event.swift in Sources */,
 				509C88A22DE28A7C004AEA54 /* User.swift in Sources */,
 				509C88A62DE28B16004AEA54 /* AuthenticationService.swift in Sources */,
+				508F8FE22DEF60F8008FB70A /* TymoreTheme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
