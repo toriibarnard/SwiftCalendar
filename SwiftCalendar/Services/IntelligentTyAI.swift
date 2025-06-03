@@ -274,6 +274,8 @@ class IntelligentTyAI {
     
     // MARK: - Response Parsing and Handling
     
+    // FIXED: Parse multiple EVENTS_START/EVENTS_END blocks in IntelligentTyAI.swift
+
     private func parseAndHandleResponse(
         _ content: String,
         existingEvents: [ScheduleEvent],
@@ -282,7 +284,7 @@ class IntelligentTyAI {
         
         print("🤖 Claude Response:\n\(content)")
         
-        // 1. Check for deletion requests
+        // 1. Check for deletion requests (unchanged)
         if content.contains("REMOVE_ALL_START") && content.contains("REMOVE_ALL_END") {
             print("🗑️ Processing delete all request")
             let message = extractMessageFromContent(content) ?? "All events have been deleted from your calendar."
@@ -300,7 +302,7 @@ class IntelligentTyAI {
             return .calendarAutomation(action: .removeEvents(removePatterns), message: message)
         }
         
-        // 2. Check for schedule optimization (PRIMARY PURPOSE)
+        // 2. Check for schedule optimization (unchanged)
         if let optimizeStart = content.range(of: "OPTIMIZE_START"),
            let optimizeEnd = content.range(of: "OPTIMIZE_END") {
             
@@ -309,7 +311,6 @@ class IntelligentTyAI {
             if let task = parseFlexibleTask(from: optimizeText) {
                 print("🎯 Processing schedule optimization for: \(task.title)")
                 
-                // PRIORITIZE: Extract Claude's intelligent suggestions first
                 let claudeSuggestions = extractClaudeTimeSlots(from: content)
                 
                 if !claudeSuggestions.isEmpty {
@@ -332,21 +333,54 @@ class IntelligentTyAI {
             }
         }
         
-        // 3. Check for calendar automation (SECONDARY PURPOSE)
-        if let eventsStart = content.range(of: "EVENTS_START"),
-           let eventsEnd = content.range(of: "EVENTS_END") {
-            
-            let eventsText = String(content[eventsStart.upperBound..<eventsEnd.lowerBound])
-            let events = parseEvents(from: eventsText)
+        // 3. FIXED: Parse ALL EVENTS_START/EVENTS_END blocks
+        let allEvents = parseAllEventBlocks(from: content)
+        
+        if !allEvents.isEmpty {
+            print("📅 Found \(allEvents.count) total events across all blocks")
             let message = extractMessageFromContent(content) ?? "Events have been added to your calendar."
-            
-            return .calendarAutomation(action: .addEvents(events), message: message)
+            return .calendarAutomation(action: .addEvents(allEvents), message: message)
         }
         
         // 4. Default: conversational response
         let cleanMessage = extractMessageFromContent(content) ?? content
         return .conversational(cleanMessage)
     }
+
+    // NEW: Function to parse ALL event blocks in a response
+    private func parseAllEventBlocks(from content: String) -> [SimpleEvent] {
+        var allEvents: [SimpleEvent] = []
+        let searchContent = content
+        var searchStartIndex = searchContent.startIndex
+        
+        // Keep finding EVENTS_START/EVENTS_END pairs until we've processed them all
+        while searchStartIndex < searchContent.endIndex {
+            // Find the next EVENTS_START from our current position
+            guard let eventsStartRange = searchContent.range(of: "EVENTS_START",
+                                                            range: searchStartIndex..<searchContent.endIndex),
+                  let eventsEndRange = searchContent.range(of: "EVENTS_END",
+                                                          range: eventsStartRange.upperBound..<searchContent.endIndex) else {
+                break // No more event blocks found
+            }
+            
+            // Extract the events text between this START/END pair
+            let eventsText = String(searchContent[eventsStartRange.upperBound..<eventsEndRange.lowerBound])
+            
+            // Parse events from this block
+            let blockEvents = parseEvents(from: eventsText)
+            allEvents.append(contentsOf: blockEvents)
+            
+            print("📦 Parsed \(blockEvents.count) events from block")
+            
+            // Move our search position past this END marker
+            searchStartIndex = eventsEndRange.upperBound
+        }
+        
+        print("✅ Total events parsed: \(allEvents.count)")
+        return allEvents
+    }
+
+    // Note: The existing parseEvents(from:) function will be used - don't redeclare it
     
     // MARK: - Helper Functions
     
