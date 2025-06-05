@@ -2,7 +2,7 @@
 //  CompatibilityExtensions.swift
 //  SwiftCalendar
 //
-//  FIXED: Extensions to ensure compatibility between old and new architecture
+//  FIXED: Extensions to ensure the compatibility between old and new architecture
 //
 
 import Foundation
