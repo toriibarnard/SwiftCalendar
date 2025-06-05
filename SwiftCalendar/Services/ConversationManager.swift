@@ -129,9 +129,19 @@ class ConversationManager {
         • Working hours: \(userPreferences.workingHours.start):00 to \(userPreferences.workingHours.end):00
         • Morning availability: from \(userPreferences.preferredMorningStart):00
         • Evening cutoff: until \(userPreferences.preferredEveningEnd):00
-        • Buffer time preference: \(userPreferences.bufferTime) minutes between events
+        • Buffer time preference: \(userPreferences.bufferTime) minutes between events (CRITICAL: Always maintain this buffer)
         
-        Remember: You have complete calendar control. Maintain conversation context and follow through on requests consistently. ALWAYS use the proper response formats - especially OPTIMIZE_START/OPTIMIZE_END for scheduling questions. Always check for time conflicts with existing events when suggesting optimal times.
+        CRITICAL CONFLICT CHECKING RULES:
+        1. For ANY event suggestion, you MUST check that:
+           - Start time + full duration + 15min buffer does NOT overlap with next event
+           - Previous event end time + 15min buffer does NOT overlap with suggested start time
+        2. For longer events (2+ hours), be EXTRA careful about end time conflicts
+        3. If a 3-hour study session is requested, ensure the END time (start + 3 hours + 15min buffer) doesn't conflict
+        4. If NO valid time slots exist that can accommodate the full duration + buffers, say so clearly:
+           "I couldn't find any available time slots that can accommodate a [duration] [activity] without conflicts"
+        5. NEVER suggest times that would cause overlaps, even partial ones
+        
+        Remember: You have complete calendar control. Maintain conversation context and follow through on requests consistently. ALWAYS use the proper response formats - especially OPTIMIZE_START/OPTIMIZE_END for scheduling questions. Always check for time conflicts with existing events when suggesting optimal times, including END TIME conflicts for longer events.
         """
     }
     
@@ -178,10 +188,21 @@ class ConversationManager {
             }
         }
         
-        // Add availability summary
-        analysis += "\nAVAILABILITY SUMMARY:\n"
+        // Add availability summary with time blocks
+        analysis += "\nAVAILABLE TIME BLOCKS (for conflict checking):\n"
+        let availableBlocks = calculateAvailableTimeBlocks(for: thisWeekEvents, in: thisWeekStart..<thisWeekEnd)
+        for block in availableBlocks {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "EEEE h:mm a"
+            let startStr = formatter.string(from: block.start)
+            let endStr = formatter.string(from: block.end)
+            let duration = Int(block.end.timeIntervalSince(block.start) / 60)
+            analysis += "- \(startStr) to \(endStr) (\(duration) minutes available)\n"
+        }
+        
+        analysis += "\nSCHEDULE SUMMARY:\n"
         let totalSlots = calculateAvailableSlots(for: thisWeekEvents, in: thisWeekStart..<thisWeekEnd)
-        analysis += "- Available time slots this week: \(totalSlots)\n"
+        analysis += "- Total available hours this week: \(totalSlots)\n"
         analysis += "- Busiest day: \(findBusiestDay(from: groupedEvents))\n"
         analysis += "- Most open day: \(findMostOpenDay(from: groupedEvents, weekStart: thisWeekStart))\n"
         
@@ -189,6 +210,61 @@ class ConversationManager {
     }
     
     // MARK: - Helper Functions
+    
+    private func calculateAvailableTimeBlocks(for events: [ScheduleEvent], in range: Range<Date>) -> [(start: Date, end: Date)] {
+        let calendar = Calendar.current
+        var availableBlocks: [(start: Date, end: Date)] = []
+        
+        var currentDate = range.lowerBound
+        while currentDate < range.upperBound {
+            let dayStart = calendar.date(bySettingHour: 7, minute: 0, second: 0, of: currentDate) ?? currentDate
+            let dayEnd = calendar.date(bySettingHour: 22, minute: 0, second: 0, of: currentDate) ?? currentDate
+            
+            let dayEvents = events.filter { event in
+                calendar.isDate(event.startTime, inSameDayAs: currentDate)
+            }.sorted { $0.startTime < $1.startTime }
+            
+            if dayEvents.isEmpty {
+                // Entire day is free
+                availableBlocks.append((start: dayStart, end: dayEnd))
+            } else {
+                // Check time before first event
+                if dayEvents.first!.startTime > dayStart {
+                    availableBlocks.append((start: dayStart, end: dayEvents.first!.startTime))
+                }
+                
+                // Check gaps between events
+                for i in 0..<(dayEvents.count - 1) {
+                    let currentEventEnd = dayEvents[i].startTime.addingTimeInterval(TimeInterval(dayEvents[i].duration * 60))
+                    let nextEventStart = dayEvents[i + 1].startTime
+                    
+                    // Add 15-minute buffer
+                    let gapStart = currentEventEnd.addingTimeInterval(TimeInterval(15 * 60))
+                    let gapEnd = nextEventStart.addingTimeInterval(TimeInterval(-15 * 60))
+                    
+                    if gapStart < gapEnd {
+                        availableBlocks.append((start: gapStart, end: gapEnd))
+                    }
+                }
+                
+                // Check time after last event
+                let lastEventEnd = dayEvents.last!.startTime.addingTimeInterval(TimeInterval(dayEvents.last!.duration * 60))
+                if lastEventEnd < dayEnd {
+                    let gapStart = lastEventEnd.addingTimeInterval(TimeInterval(15 * 60))
+                    if gapStart < dayEnd {
+                        availableBlocks.append((start: gapStart, end: dayEnd))
+                    }
+                }
+            }
+            
+            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
+        }
+        
+        // Filter out blocks shorter than 30 minutes (too small to be useful)
+        return availableBlocks.filter { block in
+            block.end.timeIntervalSince(block.start) >= 30 * 60
+        }
+    }
     
     private func calculateAvailableSlots(for events: [ScheduleEvent], in range: Range<Date>) -> Int {
         // Calculate 1-hour available slots during reasonable hours (7 AM - 10 PM)

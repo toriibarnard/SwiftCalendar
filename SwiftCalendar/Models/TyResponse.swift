@@ -117,7 +117,7 @@ struct UserSchedulePreferences: Codable {
         preferredMorningStart: Int = 7,
         preferredEveningEnd: Int = 22,
         timePreferences: [FlexibleTask.TaskCategory: TimePreference] = [:],
-        bufferTime: Int = 30
+        bufferTime: Int = 15
     ) {
         self.workingHours = workingHours
         self.preferredMorningStart = preferredMorningStart

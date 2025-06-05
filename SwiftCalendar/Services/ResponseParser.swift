@@ -293,6 +293,22 @@ class ResponseParser {
         return nil
     }
     
+    private func extractReasoningFromLine(_ line: String) -> String {
+        // Look for text in parentheses (new format) or after "Reasoning:" (old format)
+        if let parenStart = line.firstIndex(of: "("),
+           let parenEnd = line.lastIndex(of: ")") {
+            let reasoning = String(line[line.index(after: parenStart)..<parenEnd]).trimmingCharacters(in: .whitespacesAndNewlines)
+            return reasoning.isEmpty ? "Claude's optimal suggestion" : reasoning
+        }
+        
+        if let reasoningRange = line.range(of: "Reasoning:", options: .caseInsensitive) {
+            let reasoning = String(line[reasoningRange.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+            return reasoning.isEmpty ? "Claude's optimal suggestion" : reasoning
+        }
+        
+        return "Claude's optimal suggestion"
+    }
+    
     // MARK: - Extract Claude's Actual Suggestions
     
     private func extractClaudeSuggestions(from content: String, for task: FlexibleTask) -> [TimeSlotSuggestion] {
@@ -332,7 +348,7 @@ class ResponseParser {
     }
     
     private func extractTimeFromLine(_ line: String) -> (Date, String)? {
-        // Updated patterns to match both numbered and bullet point formats
+        // Updated patterns to match all Claude formats
         let patterns = [
             // Original numbered format: "1. Today (Thursday) - 5:00 PM to 6:00 PM"
             "\\d+\\.\\s*(Today|Tomorrow)\\s*\\([^)]+\\)\\s*-\\s*(\\d{1,2}:\\d{2}\\s*[AP]M)",
@@ -340,19 +356,25 @@ class ResponseParser {
             "(Today|Tomorrow)\\s*\\([^)]+\\)\\s*-\\s*(\\d{1,2}:\\d{2}\\s*[AP]M)",
             "(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\\s*-\\s*(\\d{1,2}:\\d{2}\\s*[AP]M)",
             
-            // NEW: Bullet point format: "- Today (Thursday) at 4:30 PM - 5:30 PM"
+            // Bullet point format: "- Today (Thursday) at 4:30 PM - 5:30 PM"
             "-\\s*(Today|Tomorrow)\\s*\\([^)]+\\)\\s*at\\s*(\\d{1,2}:\\d{2}\\s*[AP]M)",
             "-\\s*(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\\s*at\\s*(\\d{1,2}:\\d{2}\\s*[AP]M)",
             
-            // NEW: "- Saturday morning: 9:00 AM - 10:00 AM"
+            // Time-of-day format: "- Saturday morning: 9:00 AM - 10:00 AM"
             "-\\s*(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\\s*morning:\\s*(\\d{1,2}:\\d{2}\\s*[AP]M)",
             "-\\s*(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\\s*afternoon:\\s*(\\d{1,2}:\\d{2}\\s*[AP]M)",
             "-\\s*(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\\s*evening:\\s*(\\d{1,2}:\\d{2}\\s*[AP]M)",
             
-            // NEW: "- Tomorrow (Friday) morning: 7:00 AM - 8:00 AM"
+            // Extended time-of-day format: "- Tomorrow (Friday) morning: 7:00 AM - 8:00 AM"
             "-\\s*(Today|Tomorrow)\\s*\\([^)]+\\)\\s*morning:\\s*(\\d{1,2}:\\d{2}\\s*[AP]M)",
             "-\\s*(Today|Tomorrow)\\s*\\([^)]+\\)\\s*afternoon:\\s*(\\d{1,2}:\\d{2}\\s*[AP]M)",
-            "-\\s*(Today|Tomorrow)\\s*\\([^)]+\\)\\s*evening:\\s*(\\d{1,2}:\\d{2}\\s*[AP]M)"
+            "-\\s*(Today|Tomorrow)\\s*\\([^)]+\\)\\s*evening:\\s*(\\d{1,2}:\\d{2}\\s*[AP]M)",
+            
+            // NEW: Full date format: "1. Sunday, June 8th, 1:00 PM - 4:00 PM"
+            "\\d+\\.\\s*(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),\\s*[^,]+,\\s*(\\d{1,2}:\\d{2}\\s*[AP]M)",
+            
+            // NEW: Simplified full date: "Sunday, June 8th, 1:00 PM"
+            "(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),\\s*[^,]+,\\s*(\\d{1,2}:\\d{2}\\s*[AP]M)"
         ]
         
         for pattern in patterns {
@@ -377,18 +399,13 @@ class ResponseParser {
         let calendar = Calendar.current
         let now = Date()
         
-        // Extract day and time components - updated for multiple formats
-        let dayPattern = "(Today|Tomorrow|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)"
+        // First try to extract time
         let timePattern = "(\\d{1,2}:\\d{2}\\s*[AP]M)"
-        
-        guard let dayRegex = try? NSRegularExpression(pattern: dayPattern, options: .caseInsensitive),
-              let timeRegex = try? NSRegularExpression(pattern: timePattern, options: .caseInsensitive),
-              let dayMatch = dayRegex.firstMatch(in: timeString, options: [], range: NSRange(timeString.startIndex..., in: timeString)),
+        guard let timeRegex = try? NSRegularExpression(pattern: timePattern, options: .caseInsensitive),
               let timeMatch = timeRegex.firstMatch(in: timeString, options: [], range: NSRange(timeString.startIndex..., in: timeString)) else {
             return nil
         }
         
-        let dayString = String(timeString[Range(dayMatch.range, in: timeString)!])
         let timeStringPart = String(timeString[Range(timeMatch.range, in: timeString)!])
         
         // Parse the time
@@ -402,6 +419,40 @@ class ResponseParser {
         
         let hour = calendar.component(.hour, from: time)
         let minute = calendar.component(.minute, from: time)
+        
+        // Check for full date format: "Sunday, June 8th, 1:00 PM"
+        if timeString.contains(",") {
+            // Try to parse full date format
+            let fullDatePattern = "(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),\\s*(\\w+)\\s+(\\d{1,2})[a-z]*,\\s*\\d{1,2}:\\d{2}\\s*[AP]M"
+            
+            if let dateRegex = try? NSRegularExpression(pattern: fullDatePattern, options: .caseInsensitive),
+               let dateMatch = dateRegex.firstMatch(in: timeString, options: [], range: NSRange(timeString.startIndex..., in: timeString)) {
+                
+                let weekdayStr = String(timeString[Range(dateMatch.range(at: 1), in: timeString)!])
+                let monthStr = String(timeString[Range(dateMatch.range(at: 2), in: timeString)!])
+                let dayStr = String(timeString[Range(dateMatch.range(at: 3), in: timeString)!])
+                
+                // Create date from components
+                let fullDateString = "\(monthStr) \(dayStr), 2025 \(timeStringPart)"
+                let fullDateFormatter = DateFormatter()
+                fullDateFormatter.dateFormat = "MMMM d, yyyy h:mm a"
+                fullDateFormatter.locale = Locale(identifier: "en_US_POSIX")
+                
+                if let parsedDate = fullDateFormatter.date(from: fullDateString) {
+                    return parsedDate
+                }
+            }
+        }
+        
+        // Fall back to existing logic for Today/Tomorrow/Weekdays
+        let dayPattern = "(Today|Tomorrow|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)"
+        
+        guard let dayRegex = try? NSRegularExpression(pattern: dayPattern, options: .caseInsensitive),
+              let dayMatch = dayRegex.firstMatch(in: timeString, options: [], range: NSRange(timeString.startIndex..., in: timeString)) else {
+            return nil
+        }
+        
+        let dayString = String(timeString[Range(dayMatch.range, in: timeString)!])
         
         // Calculate the target date
         var targetDate: Date?
@@ -431,22 +482,7 @@ class ResponseParser {
         
         return targetDate
     }
-    private func extractReasoningFromLine(_ line: String) -> String {
-        // Look for text in parentheses (new format) or after "Reasoning:" (old format)
-        if let parenStart = line.firstIndex(of: "("),
-           let parenEnd = line.lastIndex(of: ")") {
-            let reasoning = String(line[line.index(after: parenStart)..<parenEnd]).trimmingCharacters(in: .whitespacesAndNewlines)
-            return reasoning.isEmpty ? "Claude's optimal suggestion" : reasoning
-        }
         
-        if let reasoningRange = line.range(of: "Reasoning:", options: .caseInsensitive) {
-            let reasoning = String(line[reasoningRange.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
-            return reasoning.isEmpty ? "Claude's optimal suggestion" : reasoning
-        }
-        
-        return "Claude's optimal suggestion"
-    }
-    
     // MARK: - Helper Functions
     
     private func extractMessageFromContent(_ content: String) -> String? {
