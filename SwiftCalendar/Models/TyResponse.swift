@@ -2,7 +2,7 @@
 //  TyResponse.swift
 //  SwiftCalendar
 //
-//  Models for Ty AI responses and related data structures
+//  UPDATED: Models for Ty AI responses with Claude suggestions support
 //
 
 import Foundation
@@ -193,7 +193,7 @@ struct ClaudeResponse {
     }
 }
 
-// MARK: - Parse Results
+// MARK: - Parse Results - UPDATED to support Claude suggestions
 
 struct ParseResult {
     let responseType: ResponseType
@@ -205,5 +205,30 @@ struct ParseResult {
         case automation
         case removal
         case conversation
+    }
+}
+
+// MARK: - Helper for Claude Suggestions
+
+enum OptimizationContent {
+    case taskOnly(FlexibleTask)
+    case taskWithSuggestions(task: FlexibleTask, suggestions: [TimeSlotSuggestion])
+    
+    var task: FlexibleTask {
+        switch self {
+        case .taskOnly(let task):
+            return task
+        case .taskWithSuggestions(let task, _):
+            return task
+        }
+    }
+    
+    var suggestions: [TimeSlotSuggestion]? {
+        switch self {
+        case .taskOnly:
+            return nil
+        case .taskWithSuggestions(_, let suggestions):
+            return suggestions
+        }
     }
 }

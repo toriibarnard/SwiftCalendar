@@ -18,7 +18,6 @@
 		508F8FE82DEFAFD4008FB70A /* ClaudeAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 508F8FE72DEFAFD4008FB70A /* ClaudeAPIService.swift */; };
 		508F8FEA2DEFAFEB008FB70A /* ResponseParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 508F8FE92DEFAFEB008FB70A /* ResponseParser.swift */; };
 		508F8FEC2DEFAFF8008FB70A /* ConversationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 508F8FEB2DEFAFF8008FB70A /* ConversationManager.swift */; };
-		508F8FEE2DEFB006008FB70A /* ScheduleOptimizerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 508F8FED2DEFB006008FB70A /* ScheduleOptimizerService.swift */; };
 		508F8FF02DEFB040008FB70A /* SmartScheduleOptimizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 508F8FEF2DEFB040008FB70A /* SmartScheduleOptimizer.swift */; };
 		508F8FF32DEFB0A2008FB70A /* CompatibilityExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 508F8FF22DEFB09F008FB70A /* CompatibilityExtensions.swift */; };
 		509C888B2DE28745004AEA54 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 509C888A2DE28745004AEA54 /* FirebaseAuth */; };
@@ -69,7 +68,6 @@
 		508F8FE72DEFAFD4008FB70A /* ClaudeAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeAPIService.swift; sourceTree = "<group>"; };
 		508F8FE92DEFAFEB008FB70A /* ResponseParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResponseParser.swift; sourceTree = "<group>"; };
 		508F8FEB2DEFAFF8008FB70A /* ConversationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationManager.swift; sourceTree = "<group>"; };
-		508F8FED2DEFB006008FB70A /* ScheduleOptimizerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleOptimizerService.swift; sourceTree = "<group>"; };
 		508F8FEF2DEFB040008FB70A /* SmartScheduleOptimizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartScheduleOptimizer.swift; sourceTree = "<group>"; };
 		508F8FF22DEFB09F008FB70A /* CompatibilityExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompatibilityExtensions.swift; sourceTree = "<group>"; };
 		509C88912DE2897B004AEA54 /* SwiftCalendar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SwiftCalendar.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -216,7 +214,6 @@
 			isa = PBXGroup;
 			children = (
 				508F8FEF2DEFB040008FB70A /* SmartScheduleOptimizer.swift */,
-				508F8FED2DEFB006008FB70A /* ScheduleOptimizerService.swift */,
 				508F8FEB2DEFAFF8008FB70A /* ConversationManager.swift */,
 				508F8FE92DEFAFEB008FB70A /* ResponseParser.swift */,
 				508F8FE72DEFAFD4008FB70A /* ClaudeAPIService.swift */,
@@ -401,7 +398,6 @@
 				508F8FF32DEFB0A2008FB70A /* CompatibilityExtensions.swift in Sources */,
 				509C88A22DE28A7C004AEA54 /* User.swift in Sources */,
 				509C88A62DE28B16004AEA54 /* AuthenticationService.swift in Sources */,
-				508F8FEE2DEFB006008FB70A /* ScheduleOptimizerService.swift in Sources */,
 				508F8FE22DEF60F8008FB70A /* TymoreTheme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

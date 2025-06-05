@@ -2,15 +2,7 @@
 //  ConversationManager.swift
 //  SwiftCalendar
 //
-//  Created by Torii Barnard on 2025-06-03.
-//
-
-
-//
-//  ConversationManager.swift
-//  SwiftCalendar
-//
-//  Service for managing conversation context and building system prompts
+//  FIXED: Service for managing conversation context and building system prompts
 //
 
 import Foundation
@@ -42,11 +34,11 @@ class ConversationManager {
         • Never suggest external calendar apps - you ARE the calendar
         
         PRIMARY PURPOSE: Schedule Optimization
-        When users ask "when should I..." or "best time for...":
+        When users ask "when should I..." or "best time for..." or mention gym/workout/exercise timing:
         1. Analyze their fixed commitments (work, meetings, appointments)
         2. Consider user preferences, energy levels, buffer times
         3. Suggest 3-4 optimal time slots with clear reasoning unless user specifies otherwise
-        4. Use the OPTIMIZE_START/OPTIMIZE_END format below
+        4. ALWAYS use the OPTIMIZE_START/OPTIMIZE_END format below - THIS IS CRITICAL
         
         SECONDARY PURPOSE: Calendar Automation  
         When users describe schedules like "I work 9-5 on weekdays":
@@ -61,9 +53,9 @@ class ConversationManager {
         • If you asked about deleting events and user confirms, delete them
         • Follow logical conversation progression consistently
         
-        RESPONSE FORMATS:
+        RESPONSE FORMATS - THESE ARE MANDATORY:
         
-        For Schedule Optimization:
+        For Schedule Optimization (USE THIS FOR ALL "when should I" or gym/workout questions):
         OPTIMIZE_START
         task: [task name]
         duration: [minutes]
@@ -72,6 +64,17 @@ class ConversationManager {
         count: [number of suggestions, default 3]
         frequency: [daily/weekly/specific/none]
         deadline: [date or none]
+        OPTIMIZE_END
+        
+        EXAMPLE - If user asks "when should I go to the gym this week?":
+        OPTIMIZE_START
+        task: Gym Session
+        duration: 90
+        category: fitness
+        preferences: any
+        count: 3
+        frequency: none
+        deadline: none
         OPTIMIZE_END
         
         For Calendar Events:
@@ -108,13 +111,16 @@ class ConversationManager {
         [search pattern or description]
         REMOVE_END
         
-        BEHAVIORAL GUIDELINES:
-        • Be professional but conversational
-        • Ask clarifying questions only when genuinely unclear
-        • When conflicts exist, always suggest alternatives
-        • Be proactive about adding recurring schedules
-        • Never claim you "can't access" or "can't modify" the calendar
-        • Follow through on conversation logic without confusion
+        CRITICAL RULES:
+        1. ALWAYS use OPTIMIZE_START/OPTIMIZE_END for ANY scheduling question
+        2. If user mentions gym, workout, exercise, fitness - use category: fitness
+        3. If user asks "when should I..." - use OPTIMIZE format, don't just give text advice
+        4. Be professional but conversational
+        5. Ask clarifying questions only when genuinely unclear
+        6. When conflicts exist, always suggest alternatives
+        7. Be proactive about adding recurring schedules
+        8. Never claim you "can't access" or "can't modify" the calendar
+        9. Follow through on conversation logic without confusion
         
         CURRENT USER SCHEDULE:
         \(scheduleAnalysis)
@@ -125,7 +131,7 @@ class ConversationManager {
         • Evening cutoff: until \(userPreferences.preferredEveningEnd):00
         • Buffer time preference: \(userPreferences.bufferTime) minutes between events
         
-        Remember: You have complete calendar control. Maintain conversation context and follow through on requests consistently. Always check for time conflicts with existing events when suggesting optimal times.
+        Remember: You have complete calendar control. Maintain conversation context and follow through on requests consistently. ALWAYS use the proper response formats - especially OPTIMIZE_START/OPTIMIZE_END for scheduling questions. Always check for time conflicts with existing events when suggesting optimal times.
         """
     }
     

@@ -2,19 +2,18 @@
 //  IntelligentTyAI.swift
 //  SwiftCalendar
 //
-//  Main coordinator for Ty AI - orchestrates all AI services
+//  UPDATED: Main coordinator for Ty AI - prioritizes Claude's suggestions
 //
 
 import Foundation
 
 class IntelligentTyAI {
     
-    // MARK: - Services
+    // MARK: - Services - REMOVED ScheduleOptimizer
     
     private let claudeService = ClaudeAPIService()
     private let responseParser = ResponseParser()
     private let conversationManager = ConversationManager()
-    private let scheduleOptimizer = ScheduleOptimizerService()
     
     // MARK: - Public API
     
@@ -65,7 +64,7 @@ class IntelligentTyAI {
         switch result.responseType {
         case .optimization:
             return await handleOptimizationRequest(
-                task: result.content as! FlexibleTask,
+                content: result.content,
                 message: result.message ?? "Here are the optimal times I found:",
                 existingEvents: existingEvents,
                 userPreferences: userPreferences
@@ -89,38 +88,37 @@ class IntelligentTyAI {
     }
     
     private func handleOptimizationRequest(
-        task: FlexibleTask,
+        content: Any,
         message: String,
         existingEvents: [ScheduleEvent],
         userPreferences: UserSchedulePreferences
     ) async -> TyResponse {
         
-        print("🎯 Handling optimization for: \(task.title)")
-        
-        // Generate intelligent suggestions using the schedule optimizer
-        let suggestions = scheduleOptimizer.generateOptimalSuggestions(
-            for: task,
-            existingEvents: existingEvents,
-            userPreferences: userPreferences
-        )
-        
-        if suggestions.isEmpty {
-            let fallbackMessage = "I couldn't find any good times for \(task.title) that work with your current schedule. Would you like me to look at a different time period or adjust the duration?"
-            return .conversational(fallbackMessage)
+        // NO FALLBACKS - Only handle Claude's suggestions
+        if let (task, suggestions) = content as? (task: FlexibleTask, suggestions: [TimeSlotSuggestion]) {
+            
+            if suggestions.isEmpty {
+                print("❌ CRITICAL ERROR: Claude provided no suggestions")
+                return .conversational("Critical error: Failed to extract time suggestions from Claude's response. The pattern matching failed.")
+            }
+            
+            print("🤖 Using Claude's \(suggestions.count) suggestions directly")
+            
+            let enhancedMessage = buildOptimizationMessage(
+                task: task,
+                suggestions: suggestions,
+                originalMessage: message
+            )
+            
+            return .scheduleOptimization(
+                task: task,
+                suggestions: suggestions,
+                message: enhancedMessage
+            )
+        } else {
+            print("❌ CRITICAL ERROR: Unexpected optimization content type")
+            return .conversational("Critical error: Unexpected content type in optimization response.")
         }
-        
-        // Enhance message with specific suggestions
-        let enhancedMessage = buildOptimizationMessage(
-            task: task,
-            suggestions: suggestions,
-            originalMessage: message
-        )
-        
-        return .scheduleOptimization(
-            task: task,
-            suggestions: suggestions,
-            message: enhancedMessage
-        )
     }
     
     private func handleAutomationRequest(
