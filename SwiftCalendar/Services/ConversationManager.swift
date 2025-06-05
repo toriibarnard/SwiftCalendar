@@ -131,15 +131,15 @@ class ConversationManager {
         • Evening cutoff: until \(userPreferences.preferredEveningEnd):00
         • Buffer time preference: \(userPreferences.bufferTime) minutes between events (CRITICAL: Always maintain this buffer)
         
-        CRITICAL CONFLICT CHECKING RULES:
-        1. For ANY event suggestion, you MUST check that:
-           - Start time + full duration + 15min buffer does NOT overlap with next event
-           - Previous event end time + 15min buffer does NOT overlap with suggested start time
-        2. For longer events (2+ hours), be EXTRA careful about end time conflicts
-        3. If a 3-hour study session is requested, ensure the END time (start + 3 hours + 15min buffer) doesn't conflict
-        4. If NO valid time slots exist that can accommodate the full duration + buffers, say so clearly:
-           "I couldn't find any available time slots that can accommodate a [duration] [activity] without conflicts"
-        5. NEVER suggest times that would cause overlaps, even partial ones
+        CRITICAL CONFLICT CHECKING RULES (MANDATORY):
+        1. NEVER suggest times that overlap with existing events - even partial overlaps are FORBIDDEN
+        2. For longer events (2+ hours), check BOTH start AND end times for conflicts:
+           - 3-hour study session at 1pm = 1pm-4pm + 15min buffer = conflicts if ANYTHING exists 12:45pm-4:15pm
+        3. Always maintain 15-minute buffers: previous event end + 15min ≤ suggestion start
+        4. Check the ⚠️ CRITICAL CONFLICTS list above - NEVER suggest conflicting times
+        5. Only suggest times from the AVAILABLE TIME BLOCKS list
+        6. If requesting 3+ hours and no blocks are big enough, say: "No available 3-hour blocks found"
+        7. DOUBLE-CHECK every suggestion against the conflict warnings before responding
         
         Remember: You have complete calendar control. Maintain conversation context and follow through on requests consistently. ALWAYS use the proper response formats - especially OPTIMIZE_START/OPTIMIZE_END for scheduling questions. Always check for time conflicts with existing events when suggesting optimal times, including END TIME conflicts for longer events.
         """
@@ -188,8 +188,15 @@ class ConversationManager {
             }
         }
         
+        // Add EXPLICIT conflict warnings
+        analysis += "\n⚠️ CRITICAL CONFLICTS TO AVOID:\n"
+        let conflictWarnings = generateConflictWarnings(for: thisWeekEvents, in: thisWeekStart..<thisWeekEnd)
+        for warning in conflictWarnings {
+            analysis += "- \(warning)\n"
+        }
+        
         // Add availability summary with time blocks
-        analysis += "\nAVAILABLE TIME BLOCKS (for conflict checking):\n"
+        analysis += "\nAVAILABLE TIME BLOCKS (conflict-free slots):\n"
         let availableBlocks = calculateAvailableTimeBlocks(for: thisWeekEvents, in: thisWeekStart..<thisWeekEnd)
         for block in availableBlocks {
             let formatter = DateFormatter()
@@ -210,6 +217,41 @@ class ConversationManager {
     }
     
     // MARK: - Helper Functions
+    
+    private func generateConflictWarnings(for events: [ScheduleEvent], in range: Range<Date>) -> [String] {
+        let calendar = Calendar.current
+        var warnings: [String] = []
+        
+        var currentDate = range.lowerBound
+        while currentDate < range.upperBound {
+            let dayEvents = events.filter { event in
+                calendar.isDate(event.startTime, inSameDayAs: currentDate)
+            }.sorted { $0.startTime < $1.startTime }
+            
+            let dayFormatter = DateFormatter()
+            dayFormatter.dateFormat = "EEEE"
+            let timeFormatter = DateFormatter()
+            timeFormatter.dateFormat = "h:mm a"
+            let dayName = dayFormatter.string(from: currentDate)
+            
+            for event in dayEvents {
+                let startTime = timeFormatter.string(from: event.startTime)
+                let endTime = timeFormatter.string(from: event.startTime.addingTimeInterval(TimeInterval(event.duration * 60)))
+                warnings.append("NO EVENTS can be scheduled on \(dayName) from \(startTime) to \(endTime) (conflicts with \(event.title))")
+                
+                // Add buffer warnings
+                let bufferStart = event.startTime.addingTimeInterval(TimeInterval(-15 * 60))
+                let bufferEnd = event.startTime.addingTimeInterval(TimeInterval((event.duration + 15) * 60))
+                let bufferStartStr = timeFormatter.string(from: bufferStart)
+                let bufferEndStr = timeFormatter.string(from: bufferEnd)
+                warnings.append("15-min buffers required: avoid \(dayName) \(bufferStartStr) to \(bufferEndStr)")
+            }
+            
+            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
+        }
+        
+        return warnings
+    }
     
     private func calculateAvailableTimeBlocks(for events: [ScheduleEvent], in range: Range<Date>) -> [(start: Date, end: Date)] {
         let calendar = Calendar.current
@@ -260,9 +302,14 @@ class ConversationManager {
             currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
         }
         
-        // Filter out blocks shorter than 30 minutes (too small to be useful)
+        // Filter out blocks shorter than 45 minutes (need room for meaningful events + buffers)
         return availableBlocks.filter { block in
-            block.end.timeIntervalSince(block.start) >= 30 * 60
+            block.end.timeIntervalSince(block.start) >= 45 * 60
+        }.sorted { block1, block2 in
+            // Sort by size (largest first) to show best options first
+            let duration1 = block1.end.timeIntervalSince(block1.start)
+            let duration2 = block2.end.timeIntervalSince(block2.start)
+            return duration1 > duration2
         }
     }
     
