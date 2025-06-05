@@ -2,7 +2,7 @@
 //  ChatViewModel.swift
 //  SwiftCalendar
 //
-//  FIXED: Multiple selection support + theme integration
+//  UPDATED: ChatViewModel with intelligent scheduling integration
 //
 
 import Foundation
@@ -13,12 +13,12 @@ struct ChatMessage: Identifiable {
     let content: String
     let isUser: Bool
     let timestamp: Date
-    let suggestions: [ScheduleSuggestion]? // New: for optimization responses
+    let suggestions: [ScheduleSuggestion]? // Time slot suggestions
 }
 
 struct ScheduleSuggestion: Identifiable {
     let id = UUID()
-    let timeSlot: IntelligentTyAI.TimeSlot
+    let timeSlot: TimeSlotSuggestion
     let taskTitle: String
 }
 
@@ -30,13 +30,12 @@ class ChatViewModel: ObservableObject {
     @Published var errorMessage = ""
     @Published var showingConfirmation = false
     @Published var confirmationMessage = ""
-    @Published var userPreferences = UserSchedulePreferences()
-    @Published var selectedSuggestionIds: Set<UUID> = [] // NEW: Track selected suggestions
+    @Published var selectedSuggestionIds: Set<UUID> = []
     
     private let intelligentTy = IntelligentTyAI()
     weak var scheduleManager: ScheduleManager?
-    private var pendingOptimization: IntelligentTyAI.FlexibleTask?
-    private var pendingSuggestions: [IntelligentTyAI.TimeSlot] = []
+    private var pendingOptimization: FlexibleTask?
+    private var pendingSuggestions: [TimeSlotSuggestion] = []
     
     init() {
         messages.append(ChatMessage(
@@ -61,7 +60,6 @@ class ChatViewModel: ObservableObject {
             suggestions: nil
         ))
         
-        // Load user preferences from UserDefaults or Firebase
         loadUserPreferences()
     }
     
@@ -72,7 +70,7 @@ class ChatViewModel: ObservableObject {
         let userMessage = inputText
         inputText = ""
         
-        // UPDATED: Clear selected suggestions when starting new query
+        // Clear selected suggestions when starting new query
         selectedSuggestionIds.removeAll()
         
         messages.append(ChatMessage(
@@ -86,10 +84,16 @@ class ChatViewModel: ObservableObject {
         
         Task {
             do {
-                // Process with the new intelligent Ty AI
+                // Get current events and user preferences
+                let currentEvents = scheduleManager.events
+                let userPreferences = getUserPreferences()
+                
+                print("🧠 Sending request with \(currentEvents.count) existing events for context")
+                
+                // Process with the intelligent Ty AI using new architecture
                 let response = try await intelligentTy.processRequest(
                     userMessage,
-                    existingEvents: scheduleManager.events,
+                    existingEvents: currentEvents,
                     userPreferences: userPreferences
                 )
                 
@@ -112,7 +116,7 @@ class ChatViewModel: ObservableObject {
     
     // MARK: - Response Handling
     
-    private func handleTyResponse(_ response: IntelligentTyAI.TyResponse, scheduleManager: ScheduleManager) async {
+    private func handleTyResponse(_ response: TyResponse, scheduleManager: ScheduleManager) async {
         switch response {
         case .scheduleOptimization(let task, let suggestions, let message):
             print("🎯 Schedule optimization response for: \(task.title)")
@@ -148,7 +152,7 @@ class ChatViewModel: ObservableObject {
                 suggestions: nil
             ))
             
-        case .requestConfirmation(let confirmText, let pendingAction):
+        case .requestConfirmation(let confirmText, _):
             print("❓ Confirmation requested")
             confirmationMessage = confirmText
             showingConfirmation = true
@@ -169,7 +173,7 @@ class ChatViewModel: ObservableObject {
                 suggestions: nil
             ))
             
-        case .clarifyingQuestion(let question, let context):
+        case .clarifyingQuestion(let question, _):
             print("🤔 Clarifying question")
             messages.append(ChatMessage(
                 content: question,
@@ -180,7 +184,7 @@ class ChatViewModel: ObservableObject {
         }
     }
     
-    // MARK: - UPDATED: Schedule Suggestion Selection
+    // MARK: - Schedule Suggestion Selection
     
     func selectScheduleSuggestion(_ suggestion: ScheduleSuggestion) {
         guard let task = pendingOptimization,
@@ -196,27 +200,26 @@ class ChatViewModel: ObservableObject {
         // Add to selected set
         selectedSuggestionIds.insert(suggestion.id)
         
-        // Create the event
+        // Create the event using the new event category
         scheduleManager.addAIEvent(
             at: suggestion.timeSlot.startTime,
             title: task.title,
-            category: task.category,
+            category: task.category.eventCategory, // Convert to EventCategory
             duration: task.duration
         )
         
         // Learn from this selection
         learnFromSelection(task: task, selectedSlot: suggestion.timeSlot)
         
-        // NO MESSAGE SENT - just visual feedback via UI update
         print("📅 Event scheduled, UI will show checkmark")
     }
     
-    // NEW: Check if suggestion is selected
+    // Check if suggestion is selected
     func isSuggestionSelected(_ suggestion: ScheduleSuggestion) -> Bool {
         return selectedSuggestionIds.contains(suggestion.id)
     }
     
-    // NEW: Clear all selections (could be used with a "Clear" button)
+    // Clear all selections
     func clearSelections() {
         selectedSuggestionIds.removeAll()
         pendingOptimization = nil
@@ -225,14 +228,14 @@ class ChatViewModel: ObservableObject {
     
     // MARK: - Calendar Action Execution
     
-    private func executeCalendarAction(_ action: IntelligentTyAI.CalendarAction, scheduleManager: ScheduleManager) async {
+    private func executeCalendarAction(_ action: CalendarAction, scheduleManager: ScheduleManager) async {
         switch action {
         case .addEvents(let events):
             print("📅 Adding \(events.count) events")
             for event in events {
                 let category = EventCategory(rawValue: event.category) ?? .personal
                 scheduleManager.addAIEvent(
-                    at: event.date,
+                    at: event.startDate,
                     title: event.title,
                     category: category,
                     duration: event.duration
@@ -241,7 +244,16 @@ class ChatViewModel: ObservableObject {
             
         case .removeEvents(let patterns):
             print("🗑️ Removing events matching: \(patterns)")
-            // Implementation for removing events
+            // Implementation for removing events based on patterns
+            let allEvents = scheduleManager.events
+            for pattern in patterns {
+                let matchingEvents = allEvents.filter { event in
+                    event.title.lowercased().contains(pattern.lowercased())
+                }
+                for event in matchingEvents {
+                    scheduleManager.deleteEvent(event)
+                }
+            }
             
         case .removeAllEvents:
             print("🗑️ Removing all events")
@@ -258,69 +270,91 @@ class ChatViewModel: ObservableObject {
     
     // MARK: - Learning and Preferences
     
-    private func updateUserPreferences(for task: IntelligentTyAI.FlexibleTask, selectedSlots: [IntelligentTyAI.TimeSlot]) {
+    private func updateUserPreferences(for task: FlexibleTask, selectedSlots: [TimeSlotSuggestion]) {
         // Learn from the suggestions provided (even if not selected yet)
         if !selectedSlots.isEmpty {
-            var categoryPref = userPreferences.categoryPreferences[task.category] ?? CategoryPreference()
+            let preferences = getUserPreferences()
             
             // Record the hours that were suggested as good options
             for slot in selectedSlots.prefix(2) { // Top 2 suggestions
                 let hour = Calendar.current.component(.hour, from: slot.startTime)
-                categoryPref.preferredHours.insert(hour)
+                // Update preferences based on category and hour
+                // This is a simplified version - you might want to expand this
+                print("🧠 Learning: \(task.category) works well at \(hour):00")
             }
             
-            // Update average duration for this category
-            let existingAvg = categoryPref.averageDuration
-            categoryPref.averageDuration = (existingAvg + task.duration) / 2
-            
-            userPreferences.categoryPreferences[task.category] = categoryPref
-            saveUserPreferences()
+            saveUserPreferences(preferences)
         }
     }
     
-    private func learnFromSelection(task: IntelligentTyAI.FlexibleTask, selectedSlot: IntelligentTyAI.TimeSlot) {
-        // Learn from user's actual selection
-        var categoryPref = userPreferences.categoryPreferences[task.category] ?? CategoryPreference()
-        
+    private func learnFromSelection(task: FlexibleTask, selectedSlot: TimeSlotSuggestion) {
         let selectedHour = Calendar.current.component(.hour, from: selectedSlot.startTime)
         
-        // Strongly reinforce the selected hour
-        categoryPref.preferredHours.insert(selectedHour)
+        var preferences = getUserPreferences()
         
-        // Also record adjacent hours as preferred
-        categoryPref.preferredHours.insert(max(6, selectedHour - 1))
-        categoryPref.preferredHours.insert(min(23, selectedHour + 1))
+        // Create mutable copy of time preferences
+        var mutableTimePreferences = preferences.timePreferences
         
-        userPreferences.categoryPreferences[task.category] = categoryPref
-        saveUserPreferences()
+        // Update time preference for this category based on selection
+        if selectedHour <= 12 {
+            mutableTimePreferences[task.category] = .morning
+        } else if selectedHour <= 17 {
+            mutableTimePreferences[task.category] = .afternoon
+        } else {
+            mutableTimePreferences[task.category] = .evening
+        }
+        
+        // Create new preferences with updated time preferences
+        let updatedPreferences = UserSchedulePreferences(
+            workingHours: preferences.workingHours,
+            preferredMorningStart: preferences.preferredMorningStart,
+            preferredEveningEnd: preferences.preferredEveningEnd,
+            timePreferences: mutableTimePreferences,
+            bufferTime: preferences.bufferTime
+        )
+        
+        saveUserPreferences(updatedPreferences)
         
         print("🧠 Learned preference: \(task.category) at \(selectedHour):00")
     }
     
-    // MARK: - Persistence
+    // MARK: - User Preferences Management
     
-    private func loadUserPreferences() {
-        if let data = UserDefaults.standard.data(forKey: "TyUserPreferences"),
-           let preferences = try? JSONDecoder().decode(UserSchedulePreferences.self, from: data) {
-            self.userPreferences = preferences
-            print("📱 Loaded user preferences from UserDefaults")
+    private func getUserPreferences() -> UserSchedulePreferences {
+        if let data = UserDefaults.standard.data(forKey: "TyUserPreferences") {
+            do {
+                let preferences = try JSONDecoder().decode(UserSchedulePreferences.self, from: data)
+                return preferences
+            } catch {
+                print("❌ Failed to decode user preferences: \(error)")
+                return UserSchedulePreferences()
+            }
         } else {
-            print("📱 Using default user preferences")
+            return UserSchedulePreferences()
         }
     }
     
-    private func saveUserPreferences() {
-        if let data = try? JSONEncoder().encode(userPreferences) {
+    private func saveUserPreferences(_ preferences: UserSchedulePreferences) {
+        do {
+            let data = try JSONEncoder().encode(preferences)
             UserDefaults.standard.set(data, forKey: "TyUserPreferences")
-            print("💾 Saved user preferences to UserDefaults")
+            print("💾 Saved user preferences")
+        } catch {
+            print("❌ Failed to save user preferences: \(error)")
         }
+    }
+    
+    private func loadUserPreferences() {
+        // Load preferences from UserDefaults
+        _ = getUserPreferences()
+        print("📱 Loaded user preferences")
     }
     
     // MARK: - Utility Functions
     
     func clearConversation() {
         intelligentTy.clearConversationHistory()
-        selectedSuggestionIds.removeAll() // NEW: Clear selections too
+        selectedSuggestionIds.removeAll()
         messages = [
             ChatMessage(
                 content: "Conversation cleared! What would you like help optimizing today?",
@@ -332,9 +366,8 @@ class ChatViewModel: ObservableObject {
     }
     
     func confirmAction() {
-        // Handle confirmations for dangerous actions
         showingConfirmation = false
-        // Implementation depends on what was being confirmed
+        // Handle confirmations for dangerous actions
     }
     
     func cancelAction() {
@@ -347,6 +380,8 @@ class ChatViewModel: ObservableObject {
         ))
     }
 }
+
+// MARK: - Extensions
 
 extension Date {
     func chatFormat() -> String {

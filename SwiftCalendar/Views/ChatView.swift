@@ -2,7 +2,7 @@
 //  ChatView.swift
 //  SwiftCalendar
 //
-//  ELEGANT: Sophisticated chat interface - Black Butler aesthetic
+//  UPDATED: ChatView with new intelligent scheduling architecture
 //
 
 import SwiftUI
@@ -138,7 +138,7 @@ struct ElegantNavigationHeader: View {
                         .fill(theme.current.success)
                         .frame(width: 6, height: 6)
                     
-                    Text("Schedule Assistant")
+                    Text("Smart Schedule Assistant")
                         .font(TymoreTypography.bodySmall)
                         .foregroundColor(theme.current.secondaryText)
                 }
@@ -376,11 +376,13 @@ struct RefinedSuggestionCard: View {
                         }
                     }
                     
-                    Text(suggestion.timeSlot.reasoning)
-                        .font(TymoreTypography.bodySmall)
-                        .foregroundColor(theme.current.secondaryText)
-                        .multilineTextAlignment(.leading)
-                        .lineLimit(2)
+                    if let reasoning = suggestion.timeSlot.reasoning {
+                        Text(reasoning)
+                            .font(TymoreTypography.bodySmall)
+                            .foregroundColor(theme.current.secondaryText)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(2)
+                    }
                     
                     // Clean action indicator
                     HStack(spacing: 4) {

@@ -2,12 +2,14 @@
 //  SmartScheduleOptimizer.swift
 //  SwiftCalendar
 //
-//  FIXED VERSION: Core schedule optimization engine - Ty's primary purpose
+//  UPDATED: Core schedule optimization engine - Compatible with new architecture
 //
 
 import Foundation
 
 class SmartScheduleOptimizer {
+    
+    // MARK: - Models (Kept for compatibility)
     
     struct TimeSlot {
         let startTime: Date
@@ -19,10 +21,21 @@ class SmartScheduleOptimizer {
     struct FlexibleTask {
         let title: String
         let duration: Int // minutes
-        let category: EventCategory
+        let category: TaskCategory
         let preferredTimes: [TimePreference]?
         let deadline: Date?
         let frequency: TaskFrequency?
+    }
+    
+    struct FixedEvent {
+        let title: String
+        let startDate: Date
+        let endDate: Date
+    }
+    
+    struct DateTimeInterval {
+        let start: Date
+        let end: Date
     }
     
     enum TimePreference {
@@ -38,16 +51,26 @@ class SmartScheduleOptimizer {
         case specific(days: [Int]) // specific weekdays
     }
     
+    enum TaskCategory: String, CaseIterable {
+        case work = "work"
+        case fitness = "fitness"
+        case personal = "personal"
+        case study = "study"
+        case health = "health"
+        case social = "social"
+        case other = "other"
+    }
+    
     // MARK: - Core Optimization Function
     
     func findOptimalTimes(
         for task: FlexibleTask,
-        in dateRange: DateInterval,
-        avoiding fixedEvents: [ScheduleEvent],
+        in dateRange: DateTimeInterval,
+        avoiding fixedEvents: [FixedEvent],
         considering userPreferences: UserSchedulePreferences
     ) -> [TimeSlot] {
         
-        print("🎯 Finding optimal times for: \(task.title)")
+        print("🎯 SmartScheduleOptimizer: Finding optimal times for: \(task.title)")
         print("📅 Date range: \(dateRange.start) to \(dateRange.end)")
         print("🚫 Avoiding \(fixedEvents.count) fixed events")
         
@@ -86,7 +109,7 @@ class SmartScheduleOptimizer {
             )
         }
         
-        // FIXED: Ensure diversity across days - don't return all suggestions from same day
+        // Ensure diversity across days - don't return all suggestions from same day
         let diverseSlots = selectDiverseTopSlots(from: scoredSlots, maxCount: 4)
         
         print("✅ Found \(diverseSlots.count) optimal time slots")
@@ -99,7 +122,7 @@ class SmartScheduleOptimizer {
         return diverseSlots
     }
     
-    // MARK: - FIXED: Diverse Slot Selection
+    // MARK: - Diverse Slot Selection
     
     private func selectDiverseTopSlots(from slots: [TimeSlot], maxCount: Int) -> [TimeSlot] {
         let calendar = Calendar.current
@@ -138,39 +161,38 @@ class SmartScheduleOptimizer {
         return selectedSlots.sorted { $0.startTime < $1.startTime }
     }
     
-    // MARK: - FIXED: Time Slot Generation
+    // MARK: - Time Slot Generation
     
     private func generateDailyTimeSlots(
         for date: Date,
         duration: Int,
-        avoiding fixedEvents: [ScheduleEvent],
+        avoiding fixedEvents: [FixedEvent],
         preferences: UserSchedulePreferences,
         task: FlexibleTask
     ) -> [TimeSlot] {
         
-        let calendar = Calendar.current
         var slots: [TimeSlot] = []
         
         // Get day's fixed events
         let dayFixedEvents = fixedEvents.filter { event in
-            calendar.isDate(event.startTime, inSameDayAs: date)
-        }.sorted { $0.startTime < $1.startTime }
+            Calendar.current.isDate(event.startDate, inSameDayAs: date)
+        }.sorted { $0.startDate < $1.startDate }
         
-        // FIXED: Generate better time candidates based on task type and preferences
+        // Generate better time candidates based on task type and preferences
         let timeSlots = generateSmartTimeSlots(for: date, task: task, preferences: preferences)
         
         for candidateStart in timeSlots {
             let candidateEnd = candidateStart.addingTimeInterval(TimeInterval(duration * 60))
             
             // Skip if this would go past midnight
-            if !calendar.isDate(candidateEnd, inSameDayAs: date) {
+            if !Calendar.current.isDate(candidateEnd, inSameDayAs: date) {
                 continue
             }
             
             // Check for conflicts with fixed events
             let hasConflict = dayFixedEvents.contains { fixedEvent in
-                let fixedStart = fixedEvent.startTime
-                let fixedEnd = fixedEvent.startTime.addingTimeInterval(TimeInterval(fixedEvent.duration * 60))
+                let fixedStart = fixedEvent.startDate
+                let fixedEnd = fixedEvent.endDate
                 
                 // Check if time ranges overlap
                 return (candidateStart < fixedEnd && candidateEnd > fixedStart)
@@ -189,7 +211,7 @@ class SmartScheduleOptimizer {
         return slots
     }
     
-    // MARK: - FIXED: Smart Time Slot Generation
+    // MARK: - Smart Time Slot Generation
     
     private func generateSmartTimeSlots(for date: Date, task: FlexibleTask, preferences: UserSchedulePreferences) -> [Date] {
         let calendar = Calendar.current
@@ -230,19 +252,18 @@ class SmartScheduleOptimizer {
     }
     
     private func generateTimesForHours(_ hours: [Int], on date: Date) -> [Date] {
-        let calendar = Calendar.current
         return hours.compactMap { hour in
-            calendar.date(bySettingHour: hour, minute: 0, second: 0, of: date)
+            Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: date)
         }
     }
     
-    // MARK: - FIXED: Scoring Algorithm
+    // MARK: - Scoring Algorithm
     
     private func calculateSlotScore(
         slot: TimeSlot,
         for task: FlexibleTask,
         preferences: UserSchedulePreferences,
-        fixedEvents: [ScheduleEvent]
+        fixedEvents: [FixedEvent]
     ) -> Double {
         
         var score = 0.5 // Base score
@@ -250,7 +271,7 @@ class SmartScheduleOptimizer {
         let hour = calendar.component(.hour, from: slot.startTime)
         let weekday = calendar.component(.weekday, from: slot.startTime)
         
-        // 1. FIXED: Time preference scoring (40% weight)
+        // 1. Time preference scoring (40% weight)
         if let taskPreferences = task.preferredTimes {
             for preference in taskPreferences {
                 switch preference {
@@ -272,7 +293,7 @@ class SmartScheduleOptimizer {
             }
         }
         
-        // 2. FIXED: Category-specific optimal times (30% weight)
+        // 2. Category-specific optimal times (30% weight)
         let categoryScore = calculateCategoryOptimalTime(hour: hour, category: task.category, weekday: weekday)
         score += categoryScore * 0.30
         
@@ -280,16 +301,16 @@ class SmartScheduleOptimizer {
         let bufferScore = calculateBufferScore(slot: slot, fixedEvents: fixedEvents)
         score += bufferScore * 0.20
         
-        // 4. FIXED: Time diversity bonus (10% weight) - encourage different times of day
+        // 4. Time diversity bonus (10% weight) - encourage different times of day
         let diversityScore = calculateTimeOfDayScore(hour: hour)
         score += diversityScore * 0.10
         
         return max(0.0, min(1.0, score)) // Clamp between 0 and 1
     }
     
-    // MARK: - FIXED: Category-Specific Scoring
+    // MARK: - Category-Specific Scoring
     
-    private func calculateCategoryOptimalTime(hour: Int, category: EventCategory, weekday: Int) -> Double {
+    private func calculateCategoryOptimalTime(hour: Int, category: TaskCategory, weekday: Int) -> Double {
         switch category {
         case .fitness:
             // Optimal: 6-8 AM (0.9), 12-1 PM (0.7), 4:30-7 PM (0.8)
@@ -355,19 +376,19 @@ class SmartScheduleOptimizer {
         }
     }
     
-    private func calculateBufferScore(slot: TimeSlot, fixedEvents: [ScheduleEvent]) -> Double {
+    private func calculateBufferScore(slot: TimeSlot, fixedEvents: [FixedEvent]) -> Double {
         let calendar = Calendar.current
         
         // Find closest events before and after this slot
         let dayEvents = fixedEvents.filter { event in
-            calendar.isDate(event.startTime, inSameDayAs: slot.startTime)
+            calendar.isDate(event.startDate, inSameDayAs: slot.startTime)
         }
         
         var bufferScore = 1.0
         
         for event in dayEvents {
-            let eventStart = event.startTime
-            let eventEnd = event.startTime.addingTimeInterval(TimeInterval(event.duration * 60))
+            let eventStart = event.startDate
+            let eventEnd = event.endDate
             
             // Check buffer before slot
             if eventEnd <= slot.startTime {
@@ -438,45 +459,5 @@ class SmartScheduleOptimizer {
         }
         
         return reasons.joined(separator: ", ")
-    }
-}
-
-// MARK: - User Preferences Storage (keeping existing)
-
-struct UserSchedulePreferences: Codable {
-    var categoryPreferences: [EventCategory: CategoryPreference]
-    var generalPreferences: GeneralPreferences
-    
-    init() {
-        self.categoryPreferences = [:]
-        self.generalPreferences = GeneralPreferences()
-    }
-}
-
-struct CategoryPreference: Codable {
-    var preferredHours: Set<Int> // Hours user typically schedules this category
-    var avoidedHours: Set<Int>   // Hours user avoids for this category
-    var averageDuration: Int     // Typical duration for this category
-    
-    init() {
-        self.preferredHours = []
-        self.avoidedHours = []
-        self.averageDuration = 60
-    }
-}
-
-struct GeneralPreferences: Codable {
-    var workingHoursStart: Int // 9 for 9am
-    var workingHoursEnd: Int   // 17 for 5pm
-    var sleepTime: Int         // 23 for 11pm
-    var wakeTime: Int          // 7 for 7am
-    var bufferPreference: Int  // Preferred minutes between events
-    
-    init() {
-        self.workingHoursStart = 9
-        self.workingHoursEnd = 17
-        self.sleepTime = 23
-        self.wakeTime = 7
-        self.bufferPreference = 30
     }
 }
